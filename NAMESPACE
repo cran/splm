@@ -1,0 +1,24 @@
+importFrom(stats, model.matrix, model.response, aggregate, effects)
+import(nlme)
+import(spdep)
+import(Matrix)
+importFrom(bdsmatrix,bdsmatrix)
+importFrom(MASS,ginv)
+
+
+export(bsktest, sphtest, bsjktest, vcov.splm,
+effects.splm, print.effects.splm, write.effects.splm, 
+print.splm, spml, spgm, summary.splm, sphtest, listw2dgCMatrix)
+
+
+
+S3method(print, splm)
+S3method(print, summary.splm)
+S3method(effects, splm)
+S3method(vcov, splm)
+S3method(print, effects.splm)
+S3method(bsktest, formula)
+S3method(bsjktest, formula)
+S3method(sphtest, formula)
+S3method(sphtest, splm)
+

@@ -1,0 +1,16 @@
+Package: splm
+Title: Econometric Models for Spatial Panel Data
+Version: 1.0-00
+Date: 2012-03-02
+Author: Giovanni Millo <giovanni_millo@generali.com>, Gianfranco Piras
+        <gpiras@mac.com>
+Maintainer: Giovanni Millo <giovanni_millo@generali.com>
+Description: ML and GM estimation and diagnostic testing of econometric
+        models for spatial panel data.
+Depends: R (>= 2.10.0), MASS, nlme, spdep, plm, Matrix, bdsmatrix,
+        spam, ibdreg, car, lmtest, Ecdat
+License: GPL-2
+LazyLoad: yes
+Packaged: 2012-04-16 10:33:18 UTC; root
+Repository: CRAN
+Date/Publication: 2012-04-16 11:04:33

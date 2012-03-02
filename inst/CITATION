@@ -1,0 +1,20 @@
+citHeader("To cite splm in publications use:")
+
+citEntry(entry = "Article",
+  title        = "{splm}: Spatial Panel Data Models in {R}",
+  author       = personList(as.person("Giovanni Millo"),
+                   as.person("Gianfranco Piras")),
+  journal      = "Journal of Statistical Software",
+  year         = "2012",
+  volume       = "47",
+  number       = "1",
+  pages        = "1--38",
+  url          = "http://www.jstatsoft.org/v47/i01/",
+
+  textVersion  =
+  paste("Giovanni Millo, Gianfranco Piras (2012).",
+        "splm: Spatial Panel Data Models in R.",
+        "Journal of Statistical Software, 47(1), 1-38.",
+        "URL http://www.jstatsoft.org/v47/i01/.")
+)
+

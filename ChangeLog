@@ -1,0 +1,61 @@
+Changes in Version 1.0-00
+  o fixed prblem with spgm due to residuals of plm models now being pseries
+  o added /inst/CITATION, added reference to JSS paper in docs
+
+Changes in Version 0.9-05
+  o the call reported by spml is now, correctly, the user-level one instead of spreml' or spfeml's one
+  o example(spml) now produces a fixed effects and a random effects example
+  o the 'usaww' contiguity matrix for USA continental states has been fixed (Florida's neighbours were wrong) and documentation in usaww.Rd has been improved
+  o fixed the problem in fixed effects sarar model ML 
+Changes in Version 0.9-04
+  o added visible vcov.splm method for interoperability with lmtest, car
+
+Changes in Version 0.9-03
+  o reinroduced bsjktest, excluding C.3; syntax harmonized with bsktest
+  o removed spreml, spfeml from namespace and documentation
+  o fixed documentation
+  o fixed parameter names in (hidden) spreml estimators: sr, semsr, srre and semsrre +/- sar (now phi=RE variance ratio, psi=AR, rho=SEM, lambda=SAR)
+  o fixed parameter names in functions calling spreml (pbsjkSDtest)
+
+
+Changes in Version 0.9-02
+  o standardized versions of marginal bsktest reintroduced
+  o all examples now on full 'Produc' dataset
+
+Changes in Version 0.9-01
+  o spml as common wrapper for all ML based estimators
+  o fixed syntax in spgm and sphtest for consistency with spml (essentially: 'model=c("within", "random", "pooling")' argument as in 'plm')
+  o reordered arguments in estimators according to specification logic: formula, data, model type, effects, spatial error and lag
+  o changed names for error and lag components in 'spreml' according to 'spgm' nomenclature: spatial lag is lambda, error is rho. RE variance ratio stays phi.
+
+Changes in Version 0.8-03
+  o fixed the joint bsktest, pvalue comes now from pchibar{ibdreg}; added dependency on 'ibdreg' but nothing in NAMESPACE because 'ibdreg' doesn't have one
+
+Changes in Version 0.8-02
+  o fixed the bsktest, now only formula methods and correct pvals
+	
+Changes in Version 0.8-01
+  o added the spatial hausman test
+  o deleted bsjk test and corrected the bsk tests
+  o added spgm: general function that deals with all the GM estimators
+  o added the methodologies in Mutl and Pfaffermeyer (2011) and Piras (2011) 
+  for the estimation of the GM models sperrorgm and spsarargm
+  o includes the following estimators: ivplm.w2sls, ivplm.b2sls, ivplm.ec2sls, ivplm.g2sls
+  along with ivsplm that is the wrapper to use them. 
+  
+Changes in Version 0.2-04
+  o dependency changed from kinship to bdsmatrix; removed require(kinship) from all functions
+
+Changes in Version 0.2-02
+  o spfeml: Added methods for Jacobian
+
+
+Changes in Version 0.2-01
+
+
+  o spregm: modified to allow for additional endogenous variables and lag of the dependent variable
+  o Added spfegm 
+  o Added spseml
+  o spsegm: improved substantially and now reads a list of formulas. 
+ 
+  
