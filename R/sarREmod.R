@@ -38,17 +38,26 @@ function (X, y, ind, tind, n, k, t, nT, w, w2, coef0 = rep(0, 2),
     ## the fact that in this case the vcov matrix is block-diagonal
 
     ## calc. Wy (spatial lag of y)
+    ## (flexible fun accepting either listws or matrices for w)
     Wy <- function(y, w, tind) {                  # lag-specific line
+        wyt <- function(y, w) {                   # lag-specific line
+            if("listw" %in% class(w)) {           # lag-specific line
+                wyt <- lag.listw(w, y)            # lag-specific line
+            } else {                              # lag-specific line
+                wyt <- w %*% y                    # lag-specific line
+            }                                     # lag-specific line
+            return(wyt)                           # lag-specific line
+        }                                         # lag-specific line
         wy<-list()                                # lag-specific line
         for (j in 1:length(unique(tind))) {       # lag-specific line
              yT<-y[tind==unique(tind)[j]]         # lag-specific line
-             wy[[j]] <- w %*% yT                  # lag-specific line
+             wy[[j]] <- wyt(yT, w)                # lag-specific line
              }                                    # lag-specific line
         return(unlist(wy))                        # lag-specific line
     }                                             # lag-specific line
 
     ## lag y once for all
-    wy <- Wy(y, w2, tind)                         # lag-specific line
+    wy <- Wy(y, w2, tind)                          # lag-specific line
 
     ## the sigma matrix is inverted during the GLS step and not before as
     ## in the other cases, to take advantage of specialized methods in the
@@ -116,7 +125,7 @@ function (X, y, ind, tind, n, k, t, nT, w, w2, coef0 = rep(0, 2),
         e <- glsres[["ehat"]]
         s2e <- glsres[["sigma2"]]
         ## calc ll
-        zero <- t*log(detB(psi, w2))              # lag-specific line (else zero <- 0)
+        zero <- t*ldetB(psi, w2)              # lag-specific line (else zero <- 0)
         due <- detSigma(phi, n, t)
         tre <- -(n * t)/2 * log(s2e)
         cinque <- -1/(2 * s2e) * crossprod(e, solve(sigma, e))
@@ -158,6 +167,7 @@ function (X, y, ind, tind, n, k, t, nT, w, w2, coef0 = rep(0, 2),
 
     ## final parms
     betas <- as.vector(beta[[1]])
+    sigma2 <- as.numeric(beta[["sigma2"]])
     arcoef <- myparms[which(nam.errcomp=="lambda")]  # lag-specific line
     errcomp <- myparms[which(nam.errcomp!="lambda")]
     names(betas) <- nam.beta
@@ -172,7 +182,8 @@ function (X, y, ind, tind, n, k, t, nT, w, w2, coef0 = rep(0, 2),
 
     ## result
     RES <- list(betas = betas, arcoef=arcoef, errcomp = errcomp,
-                covB = covB, covAR=covAR, covPRL = covPRL, ll = myll)
+                covB = covB, covAR=covAR, covPRL = covPRL, ll = myll,
+                sigma2 = sigma2)
 
     return(RES)
 }

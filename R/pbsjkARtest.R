@@ -48,7 +48,7 @@ function(formula, data, w, index=NULL, ...) {
   u.hat<-as.numeric(y-X%*%beta0)
 
   ## retrieve SEM coefficient from model coef
-  lambda <- mymod$errcomp["lambda"]
+  lambda <- mymod$errcomp["rho"]
 
   ## retrieve variance components sigma.e and sigma.mu from lme object
   eta <- mymod$errcomp["phi"]  # pay attention to this renaming

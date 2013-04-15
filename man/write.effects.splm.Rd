@@ -7,8 +7,9 @@ Methods used for writing fixed effects to \code{filename}
 }
 
 \usage{
-\method{write}{effects.splm}(x, file = "effects", ncolumns = if (is.character(x)) 1 else 5, 
-    append = FALSE, sep = ",")
+\method{write}{effects.splm}(x, file = "effects", 
+ ncolumns = if (is.character(x)) 1 else 5, 
+ append = FALSE, sep = ",")
 }
 
 \arguments{
@@ -38,23 +39,22 @@ Spatial panel data models,
 
 }
 
-\author{ Gianfranco Piras \email{gpiras@mac.com}}
+\author{Gianfranco Piras}
 
 \seealso{
-\code{\link{spml}}
+\code{spml}
 }
 \examples{
-data(Produc, package = "Ecdat")
-data(usaww)
-fm <- log(gsp) ~ log(pcap) + log(pc) + log(emp) + unemp
-lag <- spml(fm, data = Produc, listw = mat2listw(usaww), model="within", effect="twoways", lag=TRUE, method="eigen")
-summary(lag)
-eff <- effects(lag) 
-print(eff)
-err <- spml(fm, data = Produc, listw = mat2listw(usaww), model="within", effect="time", spatial.error="b", method="eigen")
-summary(err)
-eff <- effects(err) 
-write.effects.splm(eff)
+## not run
+## data(Produc, package = "Ecdat")
+## data(usaww)
+## fm <- log(gsp) ~ log(pcap) + log(pc) + log(emp) + unemp
+## err <- spml(fm, data = Produc, listw = mat2listw(usaww),
+##  model="within", effect="time", spatial.error="b",
+##  method="eigen", Hess= FALSE)
+## summary(err)
+## eff <- effects(err) 
+## write.effects.splm(eff)
 }
 
 \keyword{spatial}

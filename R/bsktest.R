@@ -536,7 +536,7 @@ function(formula, data, index=NULL, listw, ...){
 
 ## print("uso questa")
 
-ml <- spfeml(formula=formula, data=data, listw=listw, model="error", effects="pooled")
+ml <- spfeml(formula=formula, data=data, index=index, listw=listw, model="error", effects="pooled")
     ## spml(formula, data=data, index=index, listw, errors = "BSK", effects = "fixed", lag = FALSE, spatial.error = TRUE)
 
 	 if(!is.null(index)) {

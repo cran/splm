@@ -21,18 +21,19 @@ additional (other than the spatial lag) endogenous variables.
 
 \usage{
 spgm(formula, data=list(), index=NULL, listw,
-         model=c("within","random"), lag=FALSE, spatial.error=FALSE,
-         moments = c("initial", "weights", "fullweights"), endog = NULL,
-         instruments= NULL, verbose = FALSE,
-         method = c("w2sls", "b2sls", "g2sls", "ec2sls"), control = list())
+ model=c("within","random"), lag=FALSE, spatial.error=FALSE,
+ moments = c("initial", "weights", "fullweights"), endog = NULL,
+ instruments= NULL, verbose = FALSE,
+ method = c("w2sls", "b2sls", "g2sls", "ec2sls"),
+ control = list())
 }
 
 \arguments{
   \item{formula}{a description of the model to be fit. The details of model specification are given
   for \code{lm} }
-  \item{data}{an object of class \code{\link{data.frame}} or \code{pdata.frame}. An optional data frame containing the variables
-  in the model. When the obect is a \code{\link{data.frame}}, the first two columns may contain the indexes. See \code{index}}
-  \item{index}{if not NULL (default), a character vector to identify the indexes among the columns of the \code{\link{data.frame}}}
+  \item{data}{an object of class \code{data.frame} or \code{pdata.frame}. An optional data frame containing the variables
+  in the model. When the obect is a \code{data.frame}, the first two columns may contain the indexes. See \code{index}}
+  \item{index}{if not NULL (default), a character vector to identify the indexes among the columns of the \code{data.frame}}
   \item{listw}{an object of class \code{listw} created for example by \code{nb2listw}. 
   If a \code{matrix} is given as input the function will transform it using \code{mat2listw}}
   \item{model}{One of \code{"within"} or \code{"random"}. The assumption
@@ -71,7 +72,7 @@ is based on the full set of moments conditions. It also involves the expression 
 covariance matrix of the sample moments calculated under the assumption of 
 normally distributed innovations. The calculation of the trace terms in the expression 
 of the variance covariance matrix of the sample moments 
-uses codes from the \code{\link{Matrix}} package. 
+uses codes from the \code{Matrix} package. 
 When \code{moments} is\code{"weights"}, the third set of GM estimator is used. This is motivated by computational 
 issues. The procedure is analogous to the second one but uses a simplified expression for the 
 variance covariance matrix of the sample moments.
@@ -132,13 +133,14 @@ splm: Spatial Panel Data Models in R.
 URL http://www.jstatsoft.org/v47/i01/.
 }
 
-\author{ Gianfranco Piras \email{gpiras@mac.com}}
+\author{Gianfranco Piras}
 
 
 \examples{
 data(Produc, package = "Ecdat") 
 data(usaww)
-GM<-spgm(log(gsp)~log(pcap)+log(pc)+log(emp)+unemp, data=Produc,listw = usaww, moments="fullweights", spatial.error = TRUE)
+GM <- spgm(log(gsp)~log(pcap)+log(pc)+log(emp)+unemp, data=Produc,
+           listw = usaww, moments="fullweights", spatial.error = TRUE)
 summary(GM)
 }
 

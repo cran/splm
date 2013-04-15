@@ -1,11 +1,11 @@
-saremsrREmod <-
+sarem2srREmod <-
 function (X, y, ind, tind, n, k, t., nT, w, w2, coef0 = rep(0, 4),
     hess = FALSE, trace = trace, x.tol = 1.5e-18, rel.tol = 1e-15,
     method="nlminb",
           ...)
 {
 
-    ## extensive function rewriting, Giovanni Millo 29/09/2010
+    ## New KKP+SR estimator, Giovanni Millo 12/03/2013
     ## structure:
     ## a) specific part
     ## - set names, bounds and initial values for parms
@@ -18,18 +18,7 @@ function (X, y, ind, tind, n, k, t., nT, w, w2, coef0 = rep(0, 4),
     ## - calc final covariances
     ## - make list of results
 
-    ## from version 2: both nlminb (fastest, some negative covariances) and
-    ## optimizers from maxLik ("BFGS", "SANN", "NM") are supported.
-
-    ## from version 3: analytical inverse for Vmat (see notes; eliminates
-    ## singular matrix pbs., from ca. 45'' to ca. 30'' on 281x3 'datiNY' example)
-    ## and exploit the fact that solve(crossprod(B))=tcrossprod(solve(B))
-    ## (this last not giving any benefit; but check sparse methods on B)
-
-    ## this version 4 (5/3/2013): sparse matrix methods if w, w2 is a 'listw'
-    ## needs ldetB(), solveB(), xprodB()
-    ##
-    ## almost no gain on medium-sized listwNY example, T=3
+    ## needs ldetB(), xprodB()
 
     ## set names for final parms vectors
     nam.beta <- dimnames(X)[[2]]
@@ -39,6 +28,11 @@ function (X, y, ind, tind, n, k, t., nT, w, w2, coef0 = rep(0, 4),
     myparms0 <- coef0
 
     ## modules for likelihood
+    Vmat <- function(rho, t.) {
+        V1 <- matrix(ncol = t., nrow = t.)
+        for (i in 1:t.) V1[i, ] <- rho^abs(1:t. - i)
+        V <- (1/(1 - rho^2)) * V1
+    }
     Vmat.1 <- function(rho, t.) {
         ## V^(-1) is 'similar' to its 3x3 counterpart,
         ## irrespective of t.:
@@ -55,17 +49,12 @@ function (X, y, ind, tind, n, k, t., nT, w, w2, coef0 = rep(0, 4),
         }
         return(Vmat.1)
     }
-    BB.1 <- function(lambda, w) {
-        solve(xprodB(lambda, listw=w))
-    }
     alfa2 <- function(rho) (1 + rho)/(1 - rho)
     d2 <- function(rho, t.) alfa2(rho) + t. - 1
     Jt <- matrix(1, ncol = t., nrow = t.)
     In <- diag(1, n)
-    det2 <- function(phi, rho, lambda, t., w) det(d2(rho, t.) * (1 -
-        rho)^2 * phi * In + BB.1(lambda, w))
-    Z0 <- function(phi, rho, lambda, t., w) solve(d2(rho, t.) * (1 -
-        rho)^2 * phi * In + BB.1(lambda, w))
+    det2 <- function(phi, rho, lambda, t., w) (d2(rho, t.) * (1 -
+        rho)^2 * phi + 1)
     invSigma <- function(phirholambda, n, t., w) {
         ## retrieve parms
         phi <- phirholambda[1]
@@ -76,11 +65,9 @@ function (X, y, ind, tind, n, k, t., nT, w, w2, coef0 = rep(0, 4),
         ## calc inverse
         invVmat <- Vmat.1(rho, t.)    #
         BB <- xprodB(lambda, w)
-        invSi1 <- kronecker(invVmat, BB)
-        invSi2 <- 1/(d2(rho, t.) * (1 - rho)^2)
-        invSi3 <- kronecker(invVmat %*% Jt %*% invVmat,  #
-            Z0(phi, rho, lambda, t., w) - BB)
-        invSigma <- invSi1 + invSi2 * invSi3
+        chi <- phi/(d2(rho, t.)*(1-rho)^2*phi+1)
+        invSigma <- kronecker((invVmat-chi*(invVmat %*% Jt %*% invVmat)),
+                              BB)
         invSigma
     }
     ## likelihood function, both steps included
@@ -99,12 +86,12 @@ function (X, y, ind, tind, n, k, t., nT, w, w2, coef0 = rep(0, 4),
         e <- glsres[["ehat"]]
         s2e <- glsres[["sigma2"]]
         ## calc ll
-        zero <- t.*ldetB(psi, w)     # lag-specific line (else zero <- 0)
+        zero <- t.*ldetB(psi, w)    #log(detB(psi, w)) # lag-specific line (else zero <- 0)
         uno <- n/2 * log(1 - rho^2)
-        due <- -1/2 * log(det2(phi, rho, lambda, t., w2))
+        due <- -n/2 * log(det2(phi, rho, lambda, t., w2))
         tre <- -(n * t.)/2 * log(s2e)
-        quattro <- (t. - 1) * ldetB(lambda, w2)
-        cinque <- -1/(2 * s2e) * crossprod(e, sigma.1) %*% e
+        quattro <- (t.) * ldetB(lambda, w2)      #log(detB(lambda, w2))
+        cinque <- -1/(2 * s2e) * t(e) %*% sigma.1 %*% e
         const <- -(n * t.)/2 * log(2 * pi)
         ll.c <- const + zero + uno + due + tre + quattro + cinque
         ## invert sign for minimization
@@ -148,15 +135,16 @@ function (X, y, ind, tind, n, k, t., nT, w, w2, coef0 = rep(0, 4),
 
     ## GLS step function
     GLSstep <- function(X, y, sigma.1) {
-        b.hat <- solve(crossprod(X, sigma.1) %*% X,
-                       crossprod(X, sigma.1) %*% y)
+        b.hat <- solve(t(X) %*% sigma.1 %*% X,
+                       t(X) %*% sigma.1 %*% y)
         ehat <- y - X %*% b.hat
-        sigma2ehat <- (crossprod(ehat, sigma.1) %*% ehat)/(n * t.)
+        sigma2ehat <- (t(ehat) %*% sigma.1 %*% ehat)/(n * t.)
         return(list(betahat=b.hat, ehat=ehat, sigma2=sigma2ehat))
     }
 
     ## lag y once for all
     wy <- Wy(y, w2, tind)                          # lag-specific line
+
 
     ## optimization
 
@@ -215,7 +203,7 @@ function (X, y, ind, tind, n, k, t., nT, w, w2, coef0 = rep(0, 4),
 
     ## final vcov(beta)
     covB <- as.numeric(beta[[3]]) *
-        solve(crossprod(X, sigma.1) %*% X)
+        solve(t(X) %*% sigma.1 %*% X)
 
     ## final vcov(errcomp)
     nvcovpms <- length(nam.errcomp) - 1

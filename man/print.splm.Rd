@@ -12,7 +12,7 @@ Method to print objects of class \code{summary.splm} and \code{splm}
 
 \arguments{
 \item{x}{an object of class \code{splm}}
-\item{digits}{minimal number of significant digits, see \code{\link{print.default}}}
+\item{digits}{minimal number of significant digits, see \code{print.default}}
 \item{...}{additional arguments to be passed}
 }
 
@@ -28,9 +28,9 @@ depending on the estimated model.
 }
 
 \seealso{
-  \code{\link{spml}}, \code{\link{spgm}}
+  \code{spml}, \code{spgm}
 }
-\author{ Giovanni Millo \email{Giovanni\_Millo@Generali.com}, Gianfranco Piras\email{gpiras@mac.com}}
+\author{Giovanni Millo, Gianfranco Piras}
 
 \examples{
 data(Produc, package = "Ecdat") 

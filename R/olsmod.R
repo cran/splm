@@ -94,7 +94,8 @@ function (X, y, ind, tind, n, k, t, nT, w, w2, coef0 = rep(0, dim(X)[[2]]),
 
     ## result
     RES <- list(betas = betas, arcoef=arcoef, errcomp = errcomp,
-                covB = covB, covAR=covAR, covPRL = covPRL, ll = myll)
+                covB = covB, covAR=covAR, covPRL = covPRL, ll = myll,
+                sigma2 = s2e)
 
     return(RES)
 }

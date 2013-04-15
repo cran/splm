@@ -1,12 +1,14 @@
 spreml <-
 function (formula, data, index = NULL, w, w2=w, lag = FALSE,
           errors = c("semsrre", "semsr", "srre", "semre",
-          "re", "sr", "sem","ols", "sem2re"),
+          "re", "sr", "sem","ols", "sem2srre", "sem2re"),
           pvar = FALSE, hess = FALSE, quiet = TRUE,
           initval = c("zeros", "estimate"),
-          x.tol = 1.5e-18, rel.tol = 1e-15, cl = NULL, ...)
+          x.tol = 1.5e-18, rel.tol = 1e-15, ...)
 {
-    ## added call to "sem2re" error structure (KKP)
+    ## mod from spreml5.R to include experimental versions of functions in /optim
+
+    require(maxLik)
 
     trace <- as.numeric(!quiet)
     if (pvar)
@@ -17,15 +19,12 @@ function (formula, data, index = NULL, w, w2=w, lag = FALSE,
     }
     index <- data[, 1]
     tindex <- data[, 2]
-
-    ## retrieve call only if not passed on
-    if(is.null(cl)) cl <- match.call()
-
+    cl <- match.call()
     require(nlme)
     if (!is.matrix(w)) {
         if ("listw" %in% class(w)) {
-            require(spdep)
-            w <- listw2mat(w)
+ #           require(spdep)
+ #           w <- listw2mat(w)
         }
         else {
             stop("w has to be either a 'matrix' or a 'listw' object")
@@ -47,13 +46,14 @@ function (formula, data, index = NULL, w, w2=w, lag = FALSE,
     k <- dim(X)[[2]]
     t <- max(tapply(X[, 1], ind, length))
     nT <- length(ind)
-    if (dim(w)[[1]] != n)
-        stop("Non conformable spatial weights")
+#    if (dim(w)[[1]] != n)
+#        stop("Non conformable spatial weights") # temporary: adapt to listw or mat
     balanced <- n * t == nT
     if (!balanced)
         stop("Estimation method unavailable for unbalanced panels")
     sv.length <- switch(match.arg(errors), semsrre = 3, semsr = 2,
-        srre = 2, semre = 2, re = 1, sr = 1, sem = 1, ols = 0, sem2re = 2)
+          srre = 2, semre = 2, re = 1, sr = 1, sem = 1, ols = 0,
+          sem2srre = 3, sem2re = 2)
     errors. <- match.arg(errors)
     if (is.numeric(initval)) {
         if (length(initval) != sv.length) {
@@ -91,7 +91,9 @@ function (formula, data, index = NULL, w, w2=w, lag = FALSE,
     }
     if (lag) {
         est.fun <- switch(match.arg(errors), semsrre = {
-            saremsrREmod
+           saremsrREmod
+        }, sem2srre = {
+           sarem2srREmod
         }, semsr = {
             saremsrmod
         }, srre = {
@@ -113,6 +115,8 @@ function (formula, data, index = NULL, w, w2=w, lag = FALSE,
     } else {
         est.fun <- switch(match.arg(errors), semsrre = {
             semsrREmod
+        }, sem2srre = {
+           sem2srREmod
         }, semsr = {
             semsrmod
         }, srre = {
@@ -135,7 +139,7 @@ function (formula, data, index = NULL, w, w2=w, lag = FALSE,
     }
     RES <- est.fun(X, y, ind, tind, n, k, t, nT, w = w, w2 = w2,
                    coef0 = coef0, hess = hess, trace = trace,
-                   x.tol = x.tol, rel.tol = rel.tol)
+                   x.tol = x.tol, rel.tol = rel.tol, ...)
     y.hat <- as.vector(X %*% RES$betas)
     res <- y - y.hat
     nam.rows <- dimnames(X)[[1]]
@@ -144,7 +148,12 @@ function (formula, data, index = NULL, w, w2=w, lag = FALSE,
     model.data <- data.frame(cbind(y, X[, -1]))
     dimnames(model.data)[[1]] <- nam.rows
     type <- "random effects ML"
-    sigma2 <- list(one = 3, idios = 2, id = 1)
+    sigma2v <- RES$sigma2
+    sigma2mu <- if(is.null(RES$errcomp["phi"])) {0} else {
+      as.numeric(sigma2v*RES$errcomp["phi"])
+    }
+    sigma2.1 <- sigma2mu + sigma2v
+    sigma2 <- list(one = sigma2.1, idios = sigma2v, id = sigma2mu)
     spmod <- list(coefficients = RES$betas, arcoef = RES$arcoef,
         errcomp = RES$errcomp, vcov = RES$covB, vcov.arcoef = RES$covAR,
         vcov.errcomp = RES$covPRL, residuals = res, fitted.values = y.hat,

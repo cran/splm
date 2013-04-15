@@ -21,7 +21,7 @@ listw2dgCMatrix(listw, zero.policy = NULL)
 Matrix class object: a sparse Matrix}
 
 
-\author{ Gianfranco Piras \email{gpiras@mac.com}}
+\author{Gianfranco Piras}
 
 \examples{
 library(spdep)

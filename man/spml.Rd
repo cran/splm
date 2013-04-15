@@ -5,7 +5,7 @@
 
 
 \usage{
-spml(formula, data, index = NULL, listw, listw2=listw,
+spml(formula, data, index=NULL, listw, listw2=listw, na.action,
                  model=c("within","random","pooling"),
                  effect=c("individual","time","twoways"),
                  lag=FALSE, spatial.error=c("b","kkp","none"),
@@ -14,13 +14,14 @@ spml(formula, data, index = NULL, listw, listw2=listw,
 
 \arguments{
   \item{formula}{a symbolic description of the model to be estimated}
-  \item{data}{an object of class \code{\link{data.frame}} or \code{pdata.frame}. A data frame containing the variables
-  in the model. When the object is a \code{\link{data.frame}}, the first two columns shall contain the indexes, unless otherwise specified. See \code{index}}
-  \item{index}{if not NULL (default), a character vector to identify the indexes among the columns of the \code{\link{data.frame}}}
+  \item{data}{an object of class \code{data.frame} or \code{pdata.frame}. A data frame containing the variables
+  in the model. When the object is a \code{data.frame}, the first two columns shall contain the indexes, unless otherwise specified. See \code{index}}
+  \item{index}{if not NULL (default), a character vector to identify the indexes among the columns of the \code{data.frame}}
   \item{listw}{an object of class \code{listw} or a \code{matrix}. It represents the spatial weights to be used in estimation.}
   \item{listw2}{an object of class \code{listw} or a
   \code{matrix}. Second of set spatial weights for estimation, if
   different from the first (e.g., in a 'sarar' model).}
+  \item{na.action}{see \pkg{spdep} for more details.}
   \item{model}{one of \code{c("within", "random", "pooling").}}
   \item{effect}{one of \code{c("individual","time","twoways")}; the
   effects introduced in the model.}
@@ -42,8 +43,8 @@ initval: one of \code{c("zeros", "estimate")}, the initial values for
   \code{"estimate"} the initial values are retreived from the estimation
   of the nested specifications. Alternatively, a numeric vector can be
   specified.
-  x.tol: Tolerance. See \code{\link{nlminb}} for details.
-  rel.tol: Relative tolerance. See \code{\link{nlminb}} for details.
+  x.tol: Tolerance. See \code{nlminb} for details.
+  rel.tol: Relative tolerance. See \code{nlminb} for details.
 }
 \value{
   An object of class \code{"splm"}.
@@ -77,7 +78,7 @@ URL http://www.jstatsoft.org/v47/i01/.
 
 \author{Giovanni Millo}
 
-\seealso{\code{\link{spgm}}}
+\seealso{\code{spgm}}
 
 \examples{
 data(Produc, package = "Ecdat")
@@ -86,10 +87,12 @@ fm <- log(gsp) ~ log(pcap) + log(pc) + log(emp) + unemp
 ## the two standard specifications (SEM and SAR) one with FE
 ## and the other with RE:
 ## fixed effects panel with spatial errors
-fespaterr <- spml(fm, data = Produc, listw = mat2listw(usaww), model="within", spatial.error="b")
+fespaterr <- spml(fm, data = Produc, listw = mat2listw(usaww),
+                   model="within", spatial.error="b", Hess = FALSE)
 summary(fespaterr)
 ## random effects panel with spatial lag
-respatlag <- spml(fm, data = Produc, listw = mat2listw(usaww), model="random", spatial.error="none", lag=TRUE)
+respatlag <- spml(fm, data = Produc, listw = mat2listw(usaww),
+                   model="random", spatial.error="none", lag=TRUE)
 summary(respatlag)
 }
 

@@ -38,14 +38,15 @@ An object of class \code{'summary.splm'}
 }
 
 \seealso{
-  \code{\link{spml}}, \code{\link{spgm}}, \code{\link{effects}}
+  \code{spml}, \code{spgm}
 }
-\author{ Giovanni Millo \email{Giovanni\_Millo@Generali.com}, Gianfranco Piras\email{gpiras@mac.com}}
+\author{Giovanni Millo, Gianfranco Piras}
 
 \examples{
 data(Produc, package = "Ecdat") 
 data(usaww)
-GM<-spgm(log(gsp)~log(pcap)+log(pc)+log(emp)+unemp, data=Produc, listw = usaww, moments = "fullweights", spatial.error = TRUE)
+GM <- spgm(log(gsp)~log(pcap)+log(pc)+log(emp)+unemp, data=Produc,
+            listw=usaww, moments = "fullweights", spatial.error = TRUE)
 summary(GM)
 }
 

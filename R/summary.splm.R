@@ -26,10 +26,10 @@ function(object,...){
                 colnames(object$CoefTable) <- c("Estimate")
             }
 
-            if (object$type == "fixed effects error" && object$method != "eigen") {
-                lambda <- object$spat.coef
-                object$lambda <- lambda
-            }
+            # if (object$type == "fixed effects error" && object$method != "eigen") {
+                # lambda <- object$spat.coef
+                # object$lambda <- lambda
+            # }
 
             if (object$type == "random effects GM" ) {
                 lambda <- object$rho

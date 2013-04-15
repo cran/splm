@@ -10,14 +10,15 @@
 \usage{
 bsktest(x,...)
 \method{bsktest}{formula}(x, data, index=NULL, listw,
-test=c("LMH","LM1","LM2","CLMlambda","CLMmu"), standardize=TRUE, ...)
+test=c("LMH","LM1","LM2","CLMlambda","CLMmu"), 
+standardize=TRUE, ...)
 }
 \arguments{
-\item{x}{an object of class  \code{formula}}
-  \item{data}{an object of class \code{\link{data.frame}} or \code{pdata.frame}. An optional data frame containing the variables
-  in the model. When the obect is a \code{\link{data.frame}}, the first two columns may contain the indexes. See \code{index}}
-  \item{index}{if not NULL (default), a character vector to identify the indexes among the columns of the \code{\link{data.frame}}}
-\item{listw}{an object of class \code{listw} created for example by \code{nb2listw} }
+\item{x}{a \code{formula}}
+  \item{data}{a \code{data.frame} or \code{pdata.frame} containing the variables
+  in the model}
+  \item{index}{either NULL (default) or a character vector to identify the indexes among the columns of the \code{data.frame}}
+\item{listw}{a \code{listw} representing the spatial structure}
 \item{test}{one of \code{c("LMH","LM1","LM2","CLMlambda","CLMmu")}, the
   test to be performed}
 \item{standardize}{whether to standardize the test statistic or not (applies only to LM1 and LM2)}
@@ -36,7 +37,7 @@ splm: Spatial Panel Data Models in R.
 \emph{Journal of Statistical Software}, \bold{47(1)}, 1--38.
 URL http://www.jstatsoft.org/v47/i01/.}
 \author{Gianfranco Piras}
-\seealso{\code{\link{sphtest}}}
+\seealso{\code{sphtest}}
 
 \examples{
 data(Produc, package="Ecdat")

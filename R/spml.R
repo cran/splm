@@ -1,4 +1,4 @@
-spml <- function(formula, data, index=NULL, listw, listw2=listw,
+spml <- function(formula, data, index=NULL, listw, listw2=listw, na.action,
                  model=c("within","random","pooling"),
                  effect=c("individual","time","twoways"),
                  lag=FALSE, spatial.error=c("b","kkp","none"),
@@ -30,12 +30,15 @@ spml <- function(formula, data, index=NULL, listw, listw2=listw,
       model <- switch(match.arg(spatial.error), b="sarar",
                       kkp="sarar", none="lag")
     } else {
-      model <- "error"
+    	model <- switch(match.arg(spatial.error), b="error",
+                      kkp="error", none="plm")
+                      
+      if(model == "plm") stop("No spatial component, use plm instead") 
     }
     effects <- switch(match.arg(effect), individual="spfe",
                       time="tpfe", twoways="sptpfe")
     res <- spfeml(formula=formula, data=data, index=index,
-                  listw=listw, listw2=listw2,
+                  listw=listw, listw2=listw2, na.action,
                   model=model, effects=effects,
                   cl=cl, ...)
   }, random={

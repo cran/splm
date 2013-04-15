@@ -1,15 +1,14 @@
-spfeml<-function(formula, data=list(), index=NULL,listw,listw2 = NULL, model=c("lag","error", "sarar"),effects=c('pooled','spfe','tpfe','sptpfe'), method="eigen",na.action=na.fail,quiet=TRUE,zero.policy = NULL, interval = NULL, tol.solve = 1e-10, control=list(), legacy = FALSE, llprof = NULL, cl = NULL, ...){
+spfeml<-function(formula, data=list(), index=NULL, listw, listw2 = NULL, na.action, model = c("lag","error", "sarar"),effects = c('spfe','tpfe','sptpfe'), method="eigen", quiet = TRUE, zero.policy = NULL, interval1 = NULL, interval2 = NULL, trs1 = NULL, trs2 = NULL, tol.solve = 1e-10, control = list(), legacy = FALSE, llprof = NULL, cl = NULL, Hess = TRUE, LeeYu = FALSE, ...){
 
 	  
-        timings <- list()
-        .ptime_start <- proc.time()
+        # timings <- list()
+       # .ptime_start <- proc.time()
 
 model<-match.arg(model)
 
-if (model == "sarar") con <- list(tol.opt=.Machine$double.eps^0.5,fdHess=NULL, optimHess=FALSE, LAPACK = FALSE, compiled_sse=FALSE, Imult=2,cheb_q=5, MC_p=16, MC_m=30, super=FALSE, npars = 4L, lower = c(-1, -1) + .Machine$double.eps^0.5, 
-        upper = c(1, 1) - .Machine$double.eps^0.5)
+if (model == "sarar") con <- list(LAPACK = FALSE,  Imult = 2L, cheb_q = 5L, MC_p = 16L, MC_m=30L, super=FALSE, opt_method = "nlminb", opt_control = list(), pars = NULL, npars = 4L, pre_eig1 = NULL, pre_eig2 = NULL)
 
-else con <- list(tol.opt=.Machine$double.eps^0.5,fdHess=NULL, optimHess=FALSE, compiled_sse=FALSE, Imult=2,cheb_q=5, MC_p=16, MC_m=30, super=FALSE)
+else     con <- list(tol.opt = .Machine$double.eps^0.5,  Imult = 2, cheb_q = 5, MC_p = 16, MC_m = 30, super = NULL, spamPivot = "MMD", in_coef = 0.1, type = "MC", correct = TRUE, trunc = TRUE, SE_method = "LU", nrho = 200, interpn = 2000, SElndet = NULL, LU_order = FALSE, pre_eig = NULL)
 	
 
 
@@ -70,7 +69,7 @@ effects<-match.arg(effects)
   clnames<-colnames(x)
   rwnames<-rownames(x)
   #make sure that the model has no intercept if effects !=pooled
-  if (effects !="pooled" && colnames(x)[1]=="(Intercept)") {
+  if (colnames(x)[1]=="(Intercept)") {
   	x<-x[,-1]
   	#cat('\n Warning: x may not contain an intercept if fixed effects are specified \n')
 	}
@@ -96,6 +95,13 @@ if(is.vector(x)){
   ## det. total number of obs. (robust vs. unbalanced panels)
   NT<-length(ind)
 
+
+  mt<-terms(formula,data=data)
+  mf<-lm(formula,data,method="model.frame")#,na.action=na.fail
+
+  na.act<-attr(mf,'na.action')
+
+
 ##checks on listw
   if(is.matrix(listw)) {
     if(dim(listw)[[1]] !=N ) stop("Non conformable spatial weights")
@@ -104,49 +110,46 @@ if(is.vector(x)){
    }
   if (!inherits(listw, "listw"))
         stop("No neighbourhood list")
-        
+     
+ 		can.sim <- FALSE
+    if (listw$style %in% c("W", "S")) 
+        can.sim <- spdep:::can.be.simmed(listw)
+    if (!is.null(na.act)) {
+        subset <- !(1:length(listw$neighbours) %in% na.act)
+        listw <- subset(listw, subset, zero.policy = zero.policy)
+}
+     
+###specific checks for the SARAR        
 if(model == "sarar"){
-	    if (is.null(listw2)) 
+	
+	 if (is.null(listw2)) 
         listw2 <- listw
+     if (!is.null(con$pre_eig1) && is.null(con$pre_eig2)) 
+        con$pre_eig2 <- con$pre_eig1
     else if (!inherits(listw2, "listw")) 
         stop("No 2nd neighbourhood list")
 
-	}
+# if (is.null(con$fdHess)) con$fdHess <- method != "eigen"
+        # stopifnot(is.logical(con$fdHess))
 
-if (is.null(con$fdHess)) con$fdHess <- method != "eigen"
-        stopifnot(is.logical(con$fdHess))
-	can.sim <- FALSE
-
-if (listw$style %in% c("W", "S")) 
-		can.sim <- spdep:::can.be.simmed(listw)
-
-
-if(model == "sarar"){
-	    if (is.null(listw2)) 
-        listw2 <- listw
-    else if (!inherits(listw2, "listw")) 
-        stop("No 2nd neighbourhood list")
-
-if (listw2$style %in% c("W", "S")) 
-        can.sim2 <- spdep:::can.be.simmed(listw2)
-	}
-
-
-if(model=="sarar"){
-    stopifnot(is.numeric(con$lower))
-    stopifnot(length(con$lower) == 2)
-    if (!is.null(con$pars)) {
+     if (!is.null(con$pars)) {
         stopifnot(is.numeric(con$pars))
-        stopifnot(length(con$pars) == length(con$lower))
     }
     stopifnot(is.integer(con$npars))
-    stopifnot(is.numeric(con$upper))
-    stopifnot(length(con$upper) == length(con$lower))
-    stopifnot(is.logical(con$fdHess))
-    stopifnot(is.logical(con$optimHess))
+    # stopifnot(is.logical(con$fdHess))
     stopifnot(is.logical(con$LAPACK))
     stopifnot(is.logical(con$super))
-}
+
+    can.sim2 <- FALSE
+    if (listw2$style %in% c("W", "S")) 
+        can.sim2 <- spdep:::can.be.simmed(listw2)
+    if (!is.null(na.act)) {
+        subset <- !(1:length(listw2$neighbours) %in% na.act)
+        listw2 <- subset(listw2, subset, zero.policy = zero.policy)
+    }
+
+	}
+
 
 switch(model, lag = if (!quiet) cat("\n Spatial Lag Fixed Effects Model \n"),
 	    error = if (!quiet) cat("\n Spatial Error Fixed Effects Model\n"),
@@ -158,10 +161,6 @@ switch(model, lag = if (!quiet) cat("\n Spatial Lag Fixed Effects Model \n"),
   balanced<-N*T==NT
   if(!balanced) stop("Estimation method unavailable for unbalanced panels")
 
-
-  mt<-terms(formula,data=data)
-  mf<-lm(formula,data,method="model.frame")#,na.action=na.fail
-  na.act<-attr(mf,'na.action')
 
 	indic<-seq(1,T)
 	inde<-as.numeric(rep(indic,each=N)) ####takes the first n observations
@@ -180,8 +179,9 @@ assign("k",k, envir=env)
 assign("n",n, envir=env)
 
 
-wy<-unlist(tapply(y,inde, function(u) lag.listw(listw,u), simplify=TRUE))
+wy<-unlist(tapply(y,inde, function(u) lag.listw(listw,u, zero.policy = zero.policy), simplify=TRUE))
 	
+
 #demeaning of the y and x variables depending both on model and effects
 
 if (effects=="tpfe" | effects=="sptpfe"){
@@ -223,10 +223,10 @@ assign("xsms",xsms, envir=env)
 	}
 	
 	
-if (effects=='pooled'){
-	yt<-y  	###keep the variables with no transformation
-	xt<-x
-	}
+# if (effects=='pooled'){
+	# yt<-y  	###keep the variables with no transformation
+	# xt<-x
+	# }
 
 
 if (effects=="tpfe"){ ####generate the demeaned variables for tpfe
@@ -292,222 +292,128 @@ if (model == "sarar")	{
 	assign("w2yt",w2yt, envir=env)
 	assign("w2wyt",w2wyt, envir=env)
 	assign("listw2", listw2, envir = env)
+	assign("can.sim2", can.sim2, envir=env)
+	assign("similar2", FALSE, envir = env)
 	}
 	} 
 
+if(model %in% c("lag", "error") ){
+	
+	assign("compiled_sse", con$compiled_sse, envir=env)	
+	assign("f_calls", 0L, envir = env)
+    assign("hf_calls", 0L, envir = env)
 
+}
+
+assign("verbose", !quiet, envir = env)
+# assign("first_time", TRUE, envir = env)
+assign("LAPACK", con$LAPACK, envir = env)
+assign("can.sim", can.sim, envir=env)
+assign("similar", FALSE, envir = env)
+assign("family", "SAR", envir = env)
 assign("inde",inde, envir=env)
 assign("con", con, envir=env)
-assign("verbose", !quiet, envir=env)
-assign("can.sim", can.sim, envir=env)
-assign("compiled_sse", con$compiled_sse, envir=env)
-assign("similar", FALSE, envir=env)
-assign("similar2", FALSE, envir = env)
-assign("family", "SAR", envir = env)
-assign("LAPACK", con$LAPACK, envir = env)
-
-timings[["set_up"]] <- proc.time() - .ptime_start
-.ptime_start <- proc.time()
 
 
-if (!quiet) cat("Jacobian calculated using ")
-	switch(method, 
-		eigen = {
+# timings[["set_up"]] <- proc.time() - .ptime_start
+# .ptime_start <- proc.time()
 
-if (!quiet) cat("neighbourhood matrix eigenvalues\n")
-			if(model != "sarar"){
-                    eigen_setup(env)
-                    er <- get("eig.range", envir=env)
-                    if (is.null(interval)) 
-                        interval <- c(er[1]+.Machine$double.eps, 
-                            er[2]-.Machine$double.eps)
-}
-else{
-        eigen_setup(env, which = 1)
-        eigen_setup(env, which = 2)
-	
-	}
 
-                },
-	        Matrix = {
-	     
-	     if (listw$style %in% c("W", "S") && !can.sim) stop("Matrix method requires symmetric weights")
-        if (listw$style %in% c("B", "C", "U") && !(is.symmetric.glist(listw$neighbours, 
-            listw$weights))) stop("Matrix method requires symmetric weights")
+#Lee and Yu transformation
 
-if (!quiet) cat("sparse matrix Cholesky decomposition\n")
+# if(LeeYu){
+# T <- T-1	
+# assign("T",T, envir=env)	
+# NT <- n*T
+# assign("NT",T, envir=env)	
+# # stop("Lee and Yu correction not yet implemented")
+# # if (effects=="spfe" | effects=="sptpfe"){
+# # IT <- Diagonal(T)
+# # IN <- Diagonal(n)
+# # JT <- matrix(1,T,T)
+# # Jbar <- 1/T * JT	
+# # Qmat <-IT - Jbar
+# # vec <- eigen(Qmat)
+# # Fmat <- vec$vectors[,vec$values==1L] 
+# # Ftm <- kronecker(t(Fmat), IN)
+# # }
 
-if(model=="sarar"){
 
-        Imult <- con$Imult
-        if (listw$style == "B") {
-            Imult <- ceiling((2/3) * max(sapply(listw$weights, 
-                sum)))
-        }
-        Matrix_setup(env, Imult, con$super, which = 1)
-        W <- as(as_dgRMatrix_listw(listw), "CsparseMatrix")
-        I <- as_dsCMatrix_I(n)
-        if (listw2$style %in% c("W", "S") && !can.sim2) stop("Matrix method requires symmetric weights")
-        if (listw2$style %in% c("B", "C", "U") && !(is.symmetric.glist(listw2$neighbours, 
-            listw2$weights))) stop("Matrix method requires symmetric weights")
-        Imult <- con$Imult
-        if (listw2$style == "B") {
-            Imult <- ceiling((2/3) * max(sapply(listw2$weights, 
-                sum)))
-        }
-        Matrix_setup(env, Imult, con$super, which = 2)
-        W2 <- as(as_dgRMatrix_listw(listw2), "CsparseMatrix")
+# # if (effects=="tpfe" | effects=="sptpfe"){
+# # IT <- Diagonal(T)
+# # IN <- Diagonal(n)
+# # JT <- matrix(1,T,T)
+# # Jbar <- 1/T * JT	
+# # Qmat <-IT - Jbar
+# # vec <- eigen(Qmat)
+# # Fmat <- matrix(vec$vectors[,vec$values==1L], T, T-1) 
+# # Ftm <- kronecker(t(Fmat), IN)
+# # iotan <- matrix(1,n,1)
+# # Jnbar <-1/n * iotan %*% t(iotan)
+# # Qmat1 <-  IN - Jnbar
+# # vec1 <- eigen(Qmat1)
+# # Fmat1 <- matrix(vec1$vectors[,vec1$values==1L], n, n-1) 
+# # FFmat<- kronecker(t(Fmat), t(Fmat1)) 
+# # }
+
 
 	
-	}
-else{
+# }
 
-        Imult <- con$Imult
-        if (is.null(interval)) {
-            if (listw$style == "B") {
-                Imult <- ceiling((2/3) * max(sapply(listw$weights, 
-                  sum)))
-                interval <- c(-0.5, +0.25)
-            } else interval <- c(-1, 0.999)
-        }
-        if (is.null(con$super)) con$super <- as.logical(NA)
-        Matrix_setup(env, Imult, con$super)
-        W <- as(as_dgRMatrix_listw(listw), "CsparseMatrix")
-        I <- as_dsCMatrix_I(n)
-	}
 
-		},
-	       
-	       
-	        spam = {
+
+
+    if (!quiet) 
+        cat(paste("\nSpatial fixed effects model\n", "Jacobian calculated using "))
+
+if(model == "lag"){
+    interval1 <- spdep:::jacobianSetup(method, env, con, pre_eig = con$pre_eig, trs = trs1, interval = interval1)
+    assign("interval1", interval1, envir = env)
+    # nm <- paste(method, "set_up", sep = "_")
+    # timings[[nm]] <- proc.time() - .ptime_start
+    # .ptime_start <- proc.time()	
+
+
+    RES<- splaglm(env = env, zero.policy = zero.policy, interval = interval1, Hess = Hess)
     
-        if (!require(spam)) stop("spam not available")
-        if (listw$style %in% c("W", "S") && !can.sim) stop("spam method requires symmetric weights")
-        if (listw$style %in% c("B", "C", "U") && !(is.symmetric.glist(listw$neighbours, 
-            listw$weights))) stop("spam method requires symmetric weights")
-			if (!quiet) cat("sparse matrix Cholesky decomposition\n")	        	
-if(model=="sarar")	{
-
-        spam_setup(env, which = 1)
-        W <- as.spam.listw(get("listw", envir = env))
-        if (listw2$style %in% c("W", "S") && !can.sim2) stop("spam method requires symmetric weights")
-        if (listw2$style %in% c("B", "C", "U") && !(is.symmetric.glist(listw2$neighbours, 
-            listw2$weights))) stop("spam method requires symmetric weights")
-        spam_setup(env, which = 2)
-        W2 <- as.spam.listw(get("listw2", envir = env))
-	
-	}
-   else{
-                    spam_setup(env)
-                    W <- as.spam.listw(get("listw", envir=env))
-                    if (is.null(interval)) interval <- c(-1,0.999)
-                    }
-
-		},
-
-                Chebyshev = {
-
-        if (listw$style %in% c("W", "S") && !can.sim) stop("Chebyshev method requires symmetric weights")
-        if (listw$style %in% c("B", "C", "U") && !(is.symmetric.glist(listw$neighbours, 
-            listw$weights))) stop("Chebyshev method requires symmetric weights")
-		    if (!quiet) cat("sparse matrix Chebyshev approximation\n")
-                	
-if(model=="sarar"){
-
-        cheb_setup(env, q = con$cheb_q, which = 1)
-        W <- get("W", envir = env)
-        I <- as_dsCMatrix_I(n)
-        if (listw2$style %in% c("W", "S") && !can.sim2) stop("Chebyshev method requires symmetric weights")
-        if (listw2$style %in% c("B", "C", "U") && !(is.symmetric.glist(listw2$neighbours, 
-            listw2$weights))) stop("Chebyshev method requires symmetric weights")
-        cheb_setup(env, q = con$cheb_q, which = 2)
-        W2 <- get("W2", envir = env)
-	
-	}
-	
-	else{                	
-          cheb_setup(env, q=con$cheb_q)
-          W <- get("W", envir=env)
-        	 I <- as_dsCMatrix_I(n)
-          if (is.null(interval)) interval <- c(-1,0.999)
-                    }
-                    
-                },
-                
-                MC = {
-           
-          if (!listw$style %in% c("W")) stop("MC method requires row-standardised weights")
-          if (!quiet) cat("sparse matrix Monte Carlo approximation\n")	
-if(model=="sarar"){
-
-        mcdet_setup(env, p = con$MC_p, m = con$MC_m, which = 1)
-        W <- get("W", envir = env)
-        I <- as_dsCMatrix_I(n)
-        if (!listw2$style %in% c("W")) stop("MC method requires row-standardised weights")
-        mcdet_setup(env, p = con$MC_p, m = con$MC_m, which = 2)
-        W2 <- get("W2", envir = env)
+    res.eff<-felag(env = env, beta = RES$coeff, sige = RES$s2, effects = effects, method = method, lambda = RES$lambda, legacy = legacy, zero.policy = zero.policy)    
 
 	}
-	else{                	
-                    mcdet_setup(env, p=con$MC_p, m=con$MC_m)
-                    W <- get("W", envir=env)
-        	    I <- as_dsCMatrix_I(n)
-                    if (is.null(interval)) interval <- c(-1,0.999)
-                    }
-                },
-                
-                LU = {
-		    if (!quiet) cat("sparse matrix LU decomposition\n")
 
-if(model=="sarar"){
-        LU_setup(env, which = 1)
-        W <- get("W", envir = env)
-        I <- get("I", envir = env)
-        LU_setup(env, which = 2)
-        W2 <- get("W2", envir = env)
-
-            	
-            	}
-            else{   
-            	
-            	LU_setup(env)
-            W <- get("W", envir=env)
-            I <- get("I", envir=env)
-            if (is.null(interval)) interval <- c(-1,0.999)
-            }
-                },
-		stop("...\nUnknown method\n"))
-
-
-
-
-nm <- paste(method, "set_up", sep="_")
-timings[[nm]] <- proc.time() - .ptime_start
-.ptime_start <- proc.time()
-
-
-	  ## uses the two estimation functions: splaglm & sperrorlm
-if(model=='lag'){
+if(model == "sarar"){
+	
+    interval1 <- spdep:::jacobianSetup(method, env, con, pre_eig = con$pre_eig1, trs = trs1, interval = interval1, which = 1)
+    assign("interval1", interval1, envir = env)
+    interval2 <- spdep:::jacobianSetup(method, env, con, pre_eig = con$pre_eig2, trs = trs2, interval = interval2, which = 2)
+    assign("interval2", interval2, envir = env)
+    # nm <- paste(method, "set_up", sep = "_")
+    # timings[[nm]] <- proc.time() - .ptime_start
+    # .ptime_start <- proc.time()
     
-   RES<- splaglm(env = env, zero.policy = zero.policy, interval = interval)
+      RES<- spsararlm(env = env, zero.policy = zero.policy, con = con, llprof = llprof, tol.solve = tol.solve, Hess = Hess, LeeYu = LeeYu)
+  
+  
+res.eff<-felag(env = env, beta=RES$coeff, sige=RES$s2, effects = effects ,method = method, lambda = RES$lambda, legacy = legacy, zero.policy = zero.policy)    	
 
-    res.eff<-felag(env = env, beta=RES$coeff, sige=RES$s2, effects = effects ,method =method, rho=RES$rho, legacy = legacy, zero.policy = zero.policy)    
-   
-    }
+
+		}
+
 
 if (model=='error'){
 
+    interval1 <- spdep:::jacobianSetup(method, env, con, pre_eig = con$pre_eig, trs = trs1, interval = interval1)
+    assign("interval1", interval1, envir = env)
+    # nm <- paste(method, "set_up", sep = "_")
+    # timings[[nm]] <- proc.time() - .ptime_start
+    # .ptime_start <- proc.time()	
 
-  RES<- sperrorlm(env = env, zero.policy = zero.policy, interval = interval)	
-    	res.eff<-feerror(env = env, beta=RES$coeff, sige=RES$s2, effects = effects ,method =method, lambda=RES$lambda, legacy = legacy)
+  RES<- sperrorlm(env = env, zero.policy = zero.policy, interval = interval1, Hess = Hess)	
+    	res.eff<-feerror(env = env, beta=RES$coeff, sige=RES$s2, effects = effects ,method =method, rho=RES$rho, legacy = legacy)
     	
     }
     
-if(model=="sarar")    {
-
-  RES<- spsararlm(env = env, zero.policy = zero.policy, con = con, llprof = llprof, tol.solve = tol.solve)
-res.eff<-felag(env = env, beta=RES$coeff, sige=RES$s2, effects = effects ,method = method, rho = RES$lambda, legacy = legacy, zero.policy = zero.policy)    	
-	}
+	
+	
 
     ##calculate the R-squared
     yme <- y-mean(y)
@@ -535,22 +441,37 @@ res.eff<-felag(env = env, beta=RES$coeff, sige=RES$s2, effects = effects ,method
 
 
 
-if (model == "lag")   spat.coef<-RES$rho
-if (model == "error") spat.coef<-RES$lambda
-if (model == "sarar") spat.coef <- c(RES$rho, RES$lambda)
+if (model == "lag")   spat.coef<-RES$lambda
+if (model == "error") spat.coef<-RES$rho
+if (model == "sarar") spat.coef <- c(RES$lambda, RES$rho)
 
-if (is.null(RES$lambda.se) && model=="error") Coeff<-RES$coeff
-else  Coeff<-c(spat.coef,RES$coeff)
+
+Coeff<-c(spat.coef, RES$coeff)
 
 type <- paste("fixed effects", model)
 
+
 var<-RES$asyvar1
+
+if(model == "lag"){
+	var<-matrix(0,(ncol(RES$asyvar1)+1),(ncol(RES$asyvar1)+1))
+   var[1,1]<-	RES$lambda.se
+   var[(2:ncol(var)),(2:ncol(var))]<-RES$asyvar1
+	}
+
+if(model == "error"){
+	var<-matrix(0,(ncol(RES$asyvar1)+1),(ncol(RES$asyvar1)+1))
+   var[1,1]<-	RES$rho.se
+   var[(2:ncol(var)),(2:ncol(var))]<-RES$asyvar1
+	}
+	
 if(model == "sarar"){
 	var<-matrix(0,(ncol(RES$asyvar1)+2),(ncol(RES$asyvar1)+2))
    var[1,1]<-	RES$lambda.se
    var[2,2]<-	RES$rho.se
-   var[((2+1):ncol(var)),((2+1):ncol(var))]<-RES$asyvar1
+   var[(3:ncol(var)),(3:ncol(var))]<-RES$asyvar1
 	}
+
 
 spmod <- list(coefficients=Coeff, errcomp=NULL,
                 vcov = var ,spat.coef=spat.coef,
@@ -559,6 +480,10 @@ spmod <- list(coefficients=Coeff, errcomp=NULL,
                 sigma2=RES$s2, type=type, model=model.data,
                 call=cl, logLik=RES$ll, method=method, effects=effects, 
                 res.eff=res.eff)
+                
+if (!is.null(na.act)) 
+        spmod$na.action <- na.act
+                
   class(spmod) <- "splm"
   return(spmod)
 
