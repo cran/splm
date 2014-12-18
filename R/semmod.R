@@ -17,6 +17,9 @@ function (X, y, ind, tind, n, k, t., nT, w, w2, coef0 = rep(0, 2),
     ## - calc final covariances
     ## - make list of results
 
+    ## if w2!=w has been specified, then let w=w2
+    w <- w2
+    
     ## set names for final parms vectors
     nam.beta <- dimnames(X)[[2]]
     nam.errcomp <- c("rho")
@@ -106,7 +109,7 @@ function (X, y, ind, tind, n, k, t., nT, w, w2, coef0 = rep(0, 2),
                             y, X, n, t., w, w2))$Hessian
     } else {
 
-        require(maxLik)
+        #require(maxLik)
 
         ## initial values are not allowed to be zero
         maxout<-function(x,a) ifelse(x>a, x, a)

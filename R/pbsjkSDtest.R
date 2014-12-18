@@ -14,11 +14,11 @@ function(formula, data, w, index=NULL, ...) {
 
   ## depends: spreml()>ssrREmod(), fdHess{nlme} for numerical hessians
 
-  require(nlme)
+  #require(nlme) # not needed any more
 
   ## reorder data if needed
   if(!is.null(index)) {
-    require(plm)
+    #require(plm)
     data <- plm.data(data, index)
     }
 
@@ -42,7 +42,7 @@ function(formula, data, w, index=NULL, ...) {
   Jt<-matrix(1,ncol=t.,nrow=t.)
 
   ## make W matrix from listw object, if needed
-  if("listw" %in% class(w)) if(require(spdep)) w<-listw2mat(w)
+  if("listw" %in% class(w)) w<-listw2mat(w) #if(require(spdep)) w<-listw2mat(w)
 
   ## retrieve restricted model's residuals ### substitute by a direct extraction
   X<-model.matrix(formula, data)

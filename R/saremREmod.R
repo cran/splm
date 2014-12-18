@@ -153,7 +153,7 @@ function (X, y, ind, tind, n, k, t., nT, w, w2, coef0 = rep(0, 3),
 
     } else {
 
-        require(maxLik)
+        #require(maxLik)
 
         ## initial values are not allowed to be zero
         maxout<-function(x,a) ifelse(x>a, x, a)
@@ -180,7 +180,7 @@ function (X, y, ind, tind, n, k, t., nT, w, w2, coef0 = rep(0, 3),
     }
 
     ## one last GLS step at optimal vcov parms
-    sigma.1 <- invSigma(myparms, n, t., w)
+    sigma.1 <- invSigma(myparms, n, t., w2)
     Ay <- y - myparms[length(myparms)] * wy       # lag-specific line
     beta <- GLSstep(X, Ay, sigma.1)
 

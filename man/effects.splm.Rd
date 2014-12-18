@@ -52,7 +52,7 @@ Spatial panel data models,
 \code{spml} \code{summary.effects.splm}
 }
 \examples{
-data(Produc, package = "Ecdat")
+data(Produc, package = "plm")
 data(usaww)
 fm <- log(gsp) ~ log(pcap) + log(pc) + log(emp) + unemp
 err <- spml(fm, data = Produc, listw = mat2listw(usaww), model="within")

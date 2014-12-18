@@ -28,9 +28,8 @@ function (X, y, ind, tind, n, k, t, nT, w, w2, coef0 = rep(0, 2),
     ## - calc final covariances
     ## - make list of results
 
-    ## change this to 'bdsmatrix'
-    #require(kinship)
-
+    ## bdsmatrix and solve.bdsmatrix are now imported
+    
     ## set names for final parms vectors
     nam.beta <- dimnames(X)[[2]]
     nam.errcomp <- c("phi")

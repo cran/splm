@@ -18,7 +18,7 @@ function (X, y, ind, tind, n, k, t, nT, w, w2, coef0 = rep(0, 3),
     ## - make list of results
 
     ## change this to 'bdsmatrix'
-    require(bdsmatrix)
+    #require(bdsmatrix)
 
     ## set names for final parms vectors
     nam.beta <- dimnames(X)[[2]]
@@ -54,7 +54,7 @@ function (X, y, ind, tind, n, k, t, nT, w, w2, coef0 = rep(0, 3),
     }                                             # lag-specific line
 
     ## lag y once for all
-    wy <- Wy(y, w2, tind)                          # lag-specific line
+    wy <- Wy(y, w, tind)                          # lag-specific line
 
     ## the sigma matrix is inverted during the GLS step and not before as
     ## in the other cases, to take advantage of specialized methods in the
@@ -122,7 +122,7 @@ function (X, y, ind, tind, n, k, t, nT, w, w2, coef0 = rep(0, 3),
         e <- glsres[["ehat"]]
         s2e <- glsres[["sigma2"]]
         ## calc ll
-        zero <- t*ldetB(psi, w2)              # lag-specific line (else zero <- 0)
+        zero <- t*ldetB(psi, w)              # lag-specific line (else zero <- 0)
         uno <- n/2 * log(1 - rho^2)
         due <- -n/2 * log(d2(rho, t) * (1 - rho)^2 * phi + 1)
         tre <- -(n * t)/2 * log(s2e)

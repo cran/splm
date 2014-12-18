@@ -10,7 +10,7 @@ function(x, data, index=NULL, listw, test=c("C.1","C.2","C.3","J"), ...){
 
   ## transform data if needed
   if(!is.null(index)) {
-    require(plm)
+    #require(plm)
     data <- plm.data(data, index)
     }
 

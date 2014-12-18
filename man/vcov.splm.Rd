@@ -26,17 +26,18 @@ a covariance matrix of beta coefficients
   Estimators. \emph{Journal of Statistical Software}, \bold{16(9)}, 1-16.}
 
 \examples{
-data(Produc, package="Ecdat")
-data(usaww)
-fm <- log(gsp)~log(pcap)+log(pc)+log(emp)+unemp
-sarremod <- spml(fm, data=Produc, listw = mat2listw(usaww),
- model="random", lag=TRUE, spatial.error="none")
-## compact representation of betas
-library(lmtest)
-coeftest(sarremod)
-## linear hypothesis test
-library(car)
-lht(sarremod, "log(pcap)=log(pc)")
+## not run:
+## data(Produc, package="plm")
+## data(usaww)
+## fm <- log(gsp)~log(pcap)+log(pc)+log(emp)+unemp
+## sarremod <- spml(fm, data=Produc, listw = mat2listw(usaww),
+##  model="random", lag=TRUE, spatial.error="none")
+## ## compact representation of betas
+## library(lmtest)
+## coeftest(sarremod)
+## ## linear hypothesis test
+## library(car)
+## lht(sarremod, "log(pcap)=log(pc)")
 }
 
 \keyword{vcov}

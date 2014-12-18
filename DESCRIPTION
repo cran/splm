@@ -1,20 +1,21 @@
 Package: splm
 Title: Econometric Models for Spatial Panel Data
-Version: 1.1-0
-Date: 2013-04-15
-Author: Giovanni Millo <giovanni_millo@generali.com>, Gianfranco Piras
-        <gpiras@mac.com>
-Maintainer: Giovanni Millo <giovanni_millo@generali.com>
-Description: ML and GM estimation and diagnostic testing of econometric
-        models for spatial panel data.
-Depends: R (>= 2.15.0), MASS, nlme, spdep, plm, Matrix, bdsmatrix,
-        spam, ibdreg, car, lmtest, Ecdat, maxLik
+Version: 1.3-7
+Date: 2014-12-18
+Authors@R: c(person(given = "Giovanni", family = "Millo", role = c("aut", "cre"), email = "giovanni.millo@generali.com"),
+             person(given = "Gianfranco", family = "Piras", role = c("aut"), email = "gpiras@mac.com"))
+Description: ML and GM estimation and diagnostic testing of econometric models for spatial panel data.
+Depends: R (>= 2.12.0), spdep
+Imports: plm, maxLik, MASS, bdsmatrix, ibdreg, nlme, Matrix, spam
 License: GPL-2
 LazyLoad: yes
+Author: Giovanni Millo [aut, cre],
+  Gianfranco Piras [aut]
+Maintainer: Giovanni Millo <giovanni.millo@generali.com>
 Repository: CRAN
 Repository/R-Forge/Project: splm
-Repository/R-Forge/Revision: 170
-Repository/R-Forge/DateTimeStamp: 2013-06-29 15:34:56
-Date/Publication: 2013-07-03 01:05:40
-Packaged: 2013-06-29 18:18:01 UTC; rforge
+Repository/R-Forge/Revision: 190
+Repository/R-Forge/DateTimeStamp: 2014-12-20 00:35:54
+Date/Publication: 2014-12-20 13:56:14
+Packaged: 2014-12-20 00:45:10 UTC; rforge
 NeedsCompilation: no

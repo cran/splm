@@ -30,7 +30,10 @@ function (X, y, ind, tind, n, k, t., nT, w, w2, coef0 = rep(0, 4),
     ## needs ldetB(), solveB(), xprodB()
     ##
     ## almost no gain on medium-sized listwNY example, T=3
-
+    
+    ## if w2!=w has been specified, then let w=w2
+    w <- w2 # uses w2 everywhere, but just to be sure...
+    
     ## set names for final parms vectors
     nam.beta <- dimnames(X)[[2]]
     nam.errcomp <- c("phi", "psi", "rho")
@@ -156,7 +159,7 @@ function (X, y, ind, tind, n, k, t., nT, w, w2, coef0 = rep(0, 4),
 
     } else {
 
-        require(maxLik)
+        #require(maxLik)
 
         ## initial values are not allowed to be zero
         maxout<-function(x,a) ifelse(x>a, x, a)
@@ -183,7 +186,7 @@ function (X, y, ind, tind, n, k, t., nT, w, w2, coef0 = rep(0, 4),
     }
 
     ## one last GLS step at optimal vcov parms
-    sigma.1 <- invSigma(myparms, n, t., w)
+    sigma.1 <- invSigma(myparms, n, t., w2)
     beta <- GLSstep(X, y, sigma.1)
 
     ## final vcov(beta)

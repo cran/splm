@@ -1,154 +1,141 @@
-ivplm.w2sls<-function(Y,X,H,endog, ind, tind, lag=FALSE, listw){
+###### within 2sls
+ivplm.w2sls <- function(Y,X,H = NULL, endog = NULL, lag=FALSE, listw, lag.instruments,T,N,NT, twow = FALSE, listw2 = NULL){
 
-  N<-length(unique(ind))
-  T<-length(unique(tind))
-  indt<-rep(seq(1,N), T)
-  tindt<-rep(seq(1,T), each = N)
-  tord<-order(indt,tindt)
+indic <- rep(1:N,T)
+##transform y and X	
+ywithin <-panel.transformations(Y,indic, type= "within")
+Xwithin <- panel.transformations(X, indic, type= "within")
 
-
-##transform y	
-transy<-panel.transformations(Y,ind, type= "both")
-ybetween<-transy[[2]]
-ywithin<-transy[[1]]
-	
-
-##transform X	
-transx<-panel.transformations(X,ind, type= "both")
-Xbetween<-transx[[2]]
-Xwithin<-transx[[1]]
 colnames(Xwithin)<-colnames(X)
-colnames(Xbetween)<-colnames(X)
-del<- which(diag(var(Xwithin))==0)
-
+del <- which(diag(var(Xwithin)) == 0)
+Xwithin <- Xwithin[,-del]
+# print(Xwithin[1:5,])	
 
 
 if(!lag){
-
 ##transform the instruments H
-transH<-panel.transformations(H,ind, type= "both")
-Hbetween<-transH[[2]]
-Hwithin<-transH[[1]]
+Hwithin <-panel.transformations(H, indic, type= "within")
+
+if(lag.instruments) {
+	
+	L.Hwithin <- as.matrix(listw %*% Hwithin)
+	L2.Hwithin <- as.matrix(listw %*% L.Hwithin)
+	Hwithin <- cbind(Hwithin, as.matrix(L.Hwithin), as.matrix(L2.Hwithin))
+	
+}
+
 
 ##transform the endogenous variables endog
-transendog<-panel.transformations(endog,ind, type= "both")
-endogbetween<-transendog[[2]]
-endogwithin<-transendog[[1]]
+endogwithin <-panel.transformations(endog, indic, type= "within")
 colnames(endogwithin)<-colnames(endog)
-colnames(endogbetween)<-colnames(endog)
 
-
-
-res<-spgm.tsls(as.matrix(ywithin), as.matrix(endogwithin), Xwithin, as.matrix(Hwithin) )
-#print(res$coefficients)
-varb<-res$var *res$df /((length(unique(ind)) * (length(unique(tind)) -1)) - ncol(as.matrix(Xwithin[,-del])) - ncol(endogwithin)) 
-
+res<-spgm.tsls(as.matrix(ywithin), as.matrix(endogwithin), Xwithin, as.matrix(Hwithin))
+varb<-res$var *res$df /((N * (T -1)) - ncol(as.matrix(Xwithin)) - ncol(endogwithin)) 
 res$var<-varb
+sigma2v1<- res$sse/ ((N * (T -1)) - ncol(as.matrix(Xwithin)) - ncol(endogwithin)) 
+res$sigmav<- sigma2v1	
+res$Hwithin <- Hwithin
 
-sigma2v1<- res$sse / ((length(unique(ind)) * (length(unique(tind)) -1)) - ncol(as.matrix(Xwithin[,-del])) - ncol(endogwithin)) 
 
-res$sigmav<-	sigma2v1	
-
-
-res
 	}
 	
 else{
-	
-	wywithin <- lag.listwpanel(listw, ywithin, tind)
-	wywithin <-wywithin[tord]
+
+   wywithin <- listw %*% as.matrix(ywithin)
    wywithin <- as.matrix(wywithin)
    colnames(wywithin)<-"lambda"
 
-	
 if(is.null(endog)){
 
-
-
-        WXwithin <- matrix(nrow = nrow(Xwithin), ncol = ncol(Xwithin))
-        WWXwithin <- matrix(nrow = nrow(Xwithin), ncol = ncol(Xwithin))
-
-for (i in 1:ncol(Xwithin)) {
-           wx<- lag.listwpanel(listw, Xwithin[,i], tind)
-           wwx<- lag.listwpanel(listw, wx, tind)
-
-            if (any(is.na(wx))) 
-                stop("NAs in lagged independent variable")
-            WXwithin[, i] <- wx
-            WWXwithin[, i] <- wwx
-        }
-        
-Hwithin<-cbind(WXwithin, WWXwithin)        
-Hwithin<-Hwithin[tord,]
-
+            if(twow){
+            	
+	WXwithin <- listw %*%  Xwithin
+    WWXwithin <- listw %*% WXwithin
+	W2Xwithin <- listw2 %*%  Xwithin
+    W2WXwithin <- listw2 %*% WXwithin
+    W2WWXwithin <- listw2 %*% WWXwithin
+            	
+ 	Hwithin <-cbind(as.matrix(WXwithin), as.matrix(WWXwithin), as.matrix(W2Xwithin), as.matrix(W2WXwithin), as.matrix(W2WWXwithin))            	
     
-res<-spgm.tsls(ywithin, wywithin, Xwithin, Hwithin )
+            }
+else{            
+	
+	WXwithin <- listw %*%  Xwithin
+    WWXwithin <- listw %*% WXwithin
+ 	Hwithin <-cbind(as.matrix(WXwithin), as.matrix(WWXwithin))
+ 	
+ 	}
 
 
-varb<-res$var *res$df / ((length(unique(ind)) * (length(unique(tind)) -1)) - ncol(as.matrix(Xwithin[,-del])) - 1) 
+res<-spgm.tsls(ywithin, wywithin, Xwithin, Hwithin)
+varb<-res$var *res$df / ((N * (T -1)) - ncol(as.matrix(Xwithin)) - 1) 
 res$var<-varb
-
-sigma2v1<- res$sse / ((length(unique(ind)) * (length(unique(tind)) -1)) - ncol(as.matrix(Xwithin[,-del])) - 1) 
-res$sigmav<-	sigma2v1
-
+sigma2v1<- res$sse / ((N * (T -1)) - ncol(as.matrix(Xwithin)) - 1) 
+res$sigmav <- sigma2v1
+res$Hwithin <- Hwithin
 		}
 		
 else{
+			
+			Hwithin <-panel.transformations(H, indic, type= "within")
+			
+if(lag.instruments ) {
 	
+	L.Hwithin <- listw %*% Hwithin
+	L2.Hwithin <- listw %*% L.Hwithin
 
-        WXwithin <- matrix(nrow = nrow(Xwithin), ncol = ncol(Xwithin))
-        WWXwithin <- matrix(nrow = nrow(Xwithin), ncol = ncol(Xwithin))
-for (i in 1:ncol(Xwithin)) {
-           wx<- lag.listwpanel(listw, Xwithin[,i], tind)
-           wwx<- lag.listwpanel(listw, wx, tind)
-
-            if (any(is.na(wx))) 
-                stop("NAs in lagged independent variable")
-            WXwithin[, i] <- wx
-            WWXwithin[, i] <- wwx
-        }
+	if(twow){
+		
+		w2.Hwithin <- as.matrix(listw2 %*% Hwithin)
+		w2w.Hwithin <- as.matrix(listw2 %*% L.Hwithin)
+		w2ww.Hwithin <- as.matrix(listw2 %*% L2.Hwithin)
+	Hwithin <- cbind(Hwithin, as.matrix(L.Hwithin), as.matrix(L2.Hwithin), w2.Hwithin, w2w.Hwithin, w2ww.Hwithin)		
 	
-WXwithin<-WXwithin[tord,]
-WWXwithin<-WWXwithin[tord,]
-
-##transform the instruments H
-transH<-panel.transformations(H,ind, type= "both")
-Hbetween<-transH[[2]]
-Hwithin<-transH[[1]]
+	}
+	
+	else 	Hwithin <- cbind(Hwithin, as.matrix(L.Hwithin), as.matrix(L2.Hwithin))
+}
 
 
-Hwithin<-cbind(Hwithin, WXwithin, WWXwithin)
+            if(twow){
+            	
+	WXwithin <- listw %*%  Xwithin
+    WWXwithin <- listw %*% WXwithin
+	W2Xwithin <- listw2 %*%  Xwithin
+    W2WXwithin <- listw2 %*% WXwithin
+    W2WWXwithin <- listw2 %*% WWXwithin
+            	
+ 	Hwithin <-cbind(Hwithin, as.matrix(WXwithin), as.matrix(WWXwithin), as.matrix(W2Xwithin), as.matrix(W2WXwithin), as.matrix(W2WWXwithin))            	
+    
+            }
+else{            
+	
+	WXwithin <- listw %*%  Xwithin
+    WWXwithin <- listw %*% WXwithin
+ 	Hwithin <-cbind(Hwithin, as.matrix(WXwithin), as.matrix(WWXwithin))
+ 	
+ 	}
 
-##transform the endogenous variables endog
-transendog<-panel.transformations(endog,ind, type= "both")
-endogbetween<-transendog[[2]]
-endogwithin<-transendog[[1]]
 
-colnames(endogbetween)<-colnames(endog)
+endogwithin <- panel.transformations(endog, indic, type= "within")
 
-
-endogwithin<-cbind(endogwithin, wywithin)
-
-if(is.null(colnames(endog))) colnames(endogwithin)<-c(rep("endog", (ncol(endogwithin)-1)), "lambda")
-else 	colnames(endogwithin)<-c(colnames(endog), "lambda")
-
-colnames(Xwithin)<-colnames(X)
-
+endogwithin <-cbind(endogwithin, wywithin)
+colnames(endogwithin)<-c(colnames(endog), "lambda")
+# colnames(Xwithin)<-colnames(X)[-del]
 
 res<-spgm.tsls(ywithin, endogwithin, Xwithin, Hwithin)
 
-
-varb<-res$var *res$df / ((length(unique(ind)) * (length(unique(tind)) -1)) - ncol(as.matrix(Xwithin[,-del])) - ncol(endogwithin)) 
+varb<-res$var *res$df / ((N * (T -1)) - ncol(as.matrix(Xwithin)) - ncol(endogwithin)) 
 res$var<-varb
-
-sigma2v1<- res$sse / ((length(unique(ind)) * (length(unique(tind)) -1)) - ncol(as.matrix(Xwithin[,-del])) - ncol(endogwithin)) 
-res$sigmav<-	sigma2v1
-
+sigma2v1<- res$sse / ((N * (T -1)) - ncol(as.matrix(Xwithin)) - ncol(endogwithin)) 
+res$sigmav <- sigma2v1
+res$Hwithin <- Hwithin
 	}		
 	
 	}	
-
-
 res
-
 }
+
+
+
+

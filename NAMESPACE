@@ -1,13 +1,20 @@
 importFrom(stats, model.matrix, model.response, aggregate, effects)
-import(nlme)
+importFrom(stats, optim, nlminb)
+importFrom(plm, plm.data)
+importFrom(plm, plm)
+importFrom(plm, pmodel.response)
+importFrom(nlme, fdHess, lme)
 import(spdep)
+importFrom(ibdreg, pchibar)
 import(Matrix)
-importFrom(bdsmatrix,bdsmatrix)
-importFrom(MASS,ginv)
+importFrom(spam, as.spam, diag.spam, solve.spam, t.spam, determinant.spam)
+importFrom(maxLik, maxLik)
+importFrom(bdsmatrix, bdsmatrix)
+importFrom(MASS, ginv)
 
 
 export(bsktest, sphtest, bsjktest, vcov.splm,
-effects.splm, print.effects.splm, write.effects.splm, 
+effects.splm, print.effects.splm, slag, 
 print.splm, spml, spgm, summary.splm, sphtest, listw2dgCMatrix, spreml)
 
 
@@ -21,4 +28,5 @@ S3method(bsktest, formula)
 S3method(bsjktest, formula)
 S3method(sphtest, formula)
 S3method(sphtest, splm)
-
+S3method(impacts, splm)
+S3method(slag, pseries)

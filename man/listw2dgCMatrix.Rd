@@ -24,8 +24,7 @@ Matrix class object: a sparse Matrix}
 \author{Gianfranco Piras}
 
 \examples{
-library(spdep)
-data(columbus)
+data(columbus, package="spdep")
 listw<-nb2listw(col.gal.nb)
 spW<-listw2dgCMatrix(listw)
 }

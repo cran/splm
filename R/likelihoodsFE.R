@@ -22,7 +22,7 @@ ret <- - (NT/2)*log(Nsig)  + T * ldet
 }
 
 
-splaglm<-function(env, zero.policy = zero.policy, interval = interval, con = con, llprof = llprof, tol.solve= tol.solve, Hess = Hess, method = method){
+splaglm<-function(env, zero.policy = zero.policy, interval = interval, con = con, llprof = llprof, tol.solve= tol.solve, Hess = Hess, method = method, LeeYu = LeeYu, effects = effects){
 
 xt <- get("xt", envir = env)
 yt <- get("yt", envir = env)
@@ -30,6 +30,7 @@ wyt <- get("wyt", envir = env)
 con<-get("con", envir = env)
 NT<-get("NT", envir = env)
 T<-get("T", envir = env)
+n <- NT/T
 listw<-get("listw", envir = env)
 inde<-get("inde", envir = env)
 interval1 <- get("interval1", envir = env)
@@ -43,14 +44,13 @@ interval1 <- get("interval1", envir = env)
 		e1e1<-crossprod(e1)
 		e0e1<-t(e1)%*%e0
 
+
 assign("e0e0", e0e0, envir = env)		
 assign("e1e1", e1e1, envir = env)		
 assign("e0e1", e0e1, envir = env)		
 		
  
 opt <- optimize(conclikpan,  interval = interval1, maximum = TRUE, env = env, tol = con$tol.opt)
-
-
 #opt <- nlminb(0.02138744, conclikpan,  lower = interval[1], upper= interval[2],  env = env)
 
         lambda <- opt$maximum
@@ -62,34 +62,75 @@ opt <- optimize(conclikpan,  interval = interval1, maximum = TRUE, env = env, to
         LL <- opt$objective
         optres <- opt
 
-    # nm <- paste(method, "opt", sep = "_")
-    # timings[[nm]] <- proc.time() - .ptime_start
-    # .ptime_start <- proc.time()
-
 	lm.lag <- lm((yt - lambda * wyt) ~ xt - 1)
 	p <- lm.lag$rank
     r <- residuals(lm.lag)
     fit <- yt - r
     names(r) <- names(fit)
+    SSE <- crossprod(residuals(lm.lag))
+    s2 <- as.numeric(SSE)/NT
+
+if(LeeYu && effects == "spfe") s2 <- (T/(T-1)) * as.numeric(s2)	
+if(LeeYu && effects == "tpfe") s2 <- (n/(n-1)) * as.numeric(s2)	
+
 	betas <- coefficients(lm.lag)
+	 # betas <- b0 - lambda*b1
 	names(betas) <- colnames(xt)
 	coefs <- c(lambda, betas)
 
-	SSE <- deviance(lm.lag)
-	s2 <- SSE/NT
-	# coefsl <- c(s2, rho, betas)
-    
-    # timings[["coefs"]] <- proc.time() - .ptime_start
-    # .ptime_start <- proc.time()
-    # assign("first_time", TRUE, envir = env)
+
+if(LeeYu && effects == "sptpfe"){
+	   
+	    tr <- function(A) sum(diag(A))
+        W <-listw2dgCMatrix(listw, zero.policy = zero.policy)
+        A <- solve(sparseMatrix(i=1:(NT/T), j=1:(NT/T), x=1) - lambda * W)
+        WA <- W %*% A
+		lag <- function(q) trash<-unlist(tapply(q,inde,function(TT) as.matrix(WA %*% TT), simplify=TRUE))	  
+		lag2 <- function(q) trash<-unlist(tapply(q,inde,function(TT) as.matrix(t(WA)%*%TT), simplify=TRUE))
+		WAxt <- apply(as.matrix(xt),2,lag)
+        WAWAxt<-apply(WAxt,2,lag2)
+        xtWAWAxt <- crossprod(xt,WAWAxt)
+        xtWAxt <- crossprod(xt,WAxt)
+        xtxt <- crossprod(xt) 
+	    one  <- T*(tr(WA %*% WA) + tr(t(WA) %*% WA))	    
+        two <- 1/as.numeric(s2) * t(betas) %*% xtWAWAxt  %*% betas        
+		V <- one + two
+		zero <- rbind(rep(0, length(betas)))
+        col1 <- rbind(NT/(2 * (s2^2)), T*tr(WA)/s2, t(zero))
+        three <- (1/as.numeric(s2)) * xtWAxt %*% betas
+        col2 <- rbind(T*tr(WA)/s2, V, three )
+        col3 <- rbind(zero, t(three), 1/as.numeric(s2)* xtxt)
+        asyvar <- cbind(col1, col2, col3)
+        asyv <- solve(asyvar, tol = con$tol.solve)
+		rownames(asyv) <- colnames(asyv) <- c("sigma","lambda", colnames(xt))
+
+		init <- c((T/(T+1)), rep(1,p+1))	
+
+		a3 <- rep(0,p)
+		a2 <- 1/(1 - lambda)
+		a1 <- 1/(2*s2)
+		a <- c(a1,a2,a3)
+		Bhat <- - (asyv/n) %*% a
+
+
+		coefs1 <- c(s2,  lambda, betas)
+		Theta2 <- init * coefs1 + Bhat
+ 		betas <- as.numeric(Theta2[(3:(2+p))])
+ 		names(betas) <- colnames(xt)  
+ 		lambda <-Theta2[2] 
+        names(lambda) <- "lambda"
+ 		s2 <-  Theta2[1]
+	    coefs <- c(lambda, betas)
+
 	
-	
+}	
+
 ### add numerical hessian
 if(Hess){
 	
-        fd <- fdHess(coefs, f_sarpanel_hess, env)
+        fd <- fdHess(coefs, f_sarpanel_hess, env, LeeYu = LeeYu, effects = effects)
         mat <- fd$Hessian
-		  fdHess<- solve(-(mat), tol.solve = tol.solve)
+		fdHess<- solve(-(mat), tol.solve = tol.solve)
         rownames(fdHess) <- colnames(fdHess) <- c("lambda", colnames(xt))
         
         lambda.se <- fdHess[1, 1]
@@ -105,52 +146,88 @@ else{
         W <-listw2dgCMatrix(listw, zero.policy = zero.policy)
         A <- solve(sparseMatrix(i=1:(NT/T), j=1:(NT/T), x=1) - lambda * W)
         WA <- W %*% A
-        one  <- T*(tr(WA %*% WA) + tr(t(WA) %*% WA))
-
-		  lag<-function(q) trash<-unlist(tapply(q,inde,function(TT) as.matrix(WA %*% TT), simplify=TRUE))		  
-		  lag2<-function(q) trash<-unlist(tapply(q,inde,function(TT) as.matrix(t(WA)%*%TT), simplify=TRUE))
-		  WAxt<-apply(as.matrix(xt),2,lag)
-#		  print(WAxt)
+		lag <- function(q) trash<-unlist(tapply(q,inde,function(TT) as.matrix(WA %*% TT), simplify=TRUE))	  
+		lag2 <- function(q) trash<-unlist(tapply(q,inde,function(TT) as.matrix(t(WA)%*%TT), simplify=TRUE))
+		WAxt <- apply(as.matrix(xt),2,lag)
         WAWAxt<-apply(WAxt,2,lag2)
-   #     print(WAWAxt)
         xtWAWAxt <- crossprod(xt,WAWAxt)
         xtWAxt <- crossprod(xt,WAxt)
         xtxt <- crossprod(xt) 
+
+if(LeeYu && effects == "spfe"){
+	T <- T- 1
+	NT <- n*T
+}	
+
+if(LeeYu && effects == "tpfe"){
+	n <- n-1
+	NT <- n*T
+}	
+        
+ if(LeeYu && effects == "sptpfe"){
+	n <- n-1
+	T <- T-1
+	NT <- n*T
+}		
+        one  <- T*(tr(WA %*% WA) + tr(t(WA) %*% WA))
         two <- 1/as.numeric(s2) * t(betas) %*% xtWAWAxt  %*% betas
-		  V <- one + two
-		  zero <- rbind(rep(0, length(betas)))
+		V <- one + two
+		zero <- rbind(rep(0, length(betas)))
         col1 <- rbind(NT/(2 * (s2^2)), T*tr(WA)/s2, t(zero))
         three <- (1/as.numeric(s2)) * xtWAxt %*% betas
         col2 <- rbind(T*tr(WA)/s2, V, three )
         col3 <- rbind(zero, t(three), 1/as.numeric(s2)* xtxt)
         asyvar <- cbind(col1, col2, col3)
-        asyv <- solve(asyvar, tol = con$tol.solve)
-		rownames(asyv) <- colnames(asyv) <- c("sigma","lambda", colnames(xt))
+        asyva <- solve(asyvar, tol = con$tol.solve)
+        rownames(asyva) <- colnames(asyva) <- c("sigma","lambda", colnames(xt))
         
-        lambda.se <- asyv[2, 2]        
-        rest.se <- sqrt(diag(asyv))[-c(1:2)]
-        sig.se <- sqrt(asyv[1, 1])       
-        asyvar1 <- asyv[-c(1,2),-c(1,2)]
-        
-        rownames(asyvar1) <- colnames(asyvar1) <- c(colnames(xt))
+        lambda.se <- asyva[2, 2]        
+        rest.se <- sqrt(diag(asyva))[-c(1:2)]
+        sig.se <- sqrt(asyva[1, 1]) 
+        asyv <- asyva[-1,-1]      
+        asyvar1 <- as.matrix(asyva[-c(1,2),-c(1,2)])
+        rownames(asyvar1) <- colnames(asyvar1) <- colnames(xt)
+
 
 }
+
+if(Hess) asyv <- NULL        
+else asyv <- asyv
+
+
  
-    	return<-list(coeff = betas, lambda = lambda, s2 = s2, rest.se = rest.se, lambda.se = lambda.se, sig.se = sig.se, asyvar1 = asyvar1)
+    	return<-list(coeff = betas, lambda = lambda, s2 = s2, rest.se = rest.se, lambda.se = lambda.se, sig.se = sig.se, asyvar1 = asyvar1,  residuals = r, asyv = asyv)
 } 
 
 
 
-f_sarpanel_hess <- function (coefs, env) 
+f_sarpanel_hess <- function (coefs, env, effects = effects, LeeYu = LeeYu) 
 {
 	
 	T<-get("T", envir = env)
 	NT<-get("NT", envir = env)
+    n <- NT/T
+    
+if(LeeYu && effects == "spfe"){
+
+	T <- T- 1
+	NT <- n*T
+}	
+
+if(LeeYu && effects == "tpfe"){
+	n <- n-1
+	NT <- n*T
+}	
+
+
+if(LeeYu && effects == "sptpfe"){
+	n <- n-1
+	T <- T-1
+	NT <- n*T
+}		
 
     lambda <- coefs[1]
     beta <- coefs[-1]
-
-    n <- NT/T
     SSE <- sar_hess_sse_panel(lambda, beta, env)
     s2 <- SSE /n
     
@@ -205,7 +282,7 @@ if (get("verbose", envir = env))
 
 
 
-sperrorlm<-function(env, zero.policy = zero.policy, interval = interval, con = con, llprof = llprof, tol.solve= tol.solve, Hess = Hess){
+sperrorlm <- function(env, zero.policy = zero.policy, interval = interval, con = con, llprof = llprof, tol.solve= tol.solve, Hess = Hess, LeeYu = LeeYu, effects = effects){
 
 xt <- get("xt", envir = env)
 yt <- get("yt", envir = env)
@@ -218,6 +295,7 @@ wx<-get("wx", envir = env)
 con<-get("con", envir = env)
 NT<-get("NT", envir = env)
 T<-get("T", envir = env)
+n <- NT/T
 listw<-get("listw", envir = env)
 inde<-get("inde", envir = env)
 interval <- get("interval1", envir = env)
@@ -239,18 +317,62 @@ opt <- optimize(sarpanelerror, interval = interval, maximum = TRUE, env = env, t
         1)
     r <- as.vector(residuals(lm.target))
     p <- lm.target$rank
-    s2 <- crossprod(r)/NT
+    SSE <- crossprod(residuals(lm.target))
+    s2 <- as.numeric(SSE)/NT
+
+if(LeeYu && effects == "spfe") s2 <- (T/(T-1)) * as.numeric(s2)	
+if(LeeYu && effects == "tpfe") s2 <- (n/(n-1)) * as.numeric(s2)	
+
     rest.se <- (summary(lm.target)$coefficients[, 2]) * sqrt((NT - p)/NT)     
     betas <- coefficients(lm.target)
     names(betas) <- colnames(xt)  
      coefs <- c(rho, betas) 
 
+if(LeeYu && effects == "sptpfe"){
+	    
+	    tr <- function(A) sum(diag(A))
+        W <- listw2dgCMatrix(listw, zero.policy = zero.policy)
+        A <- solve(sparseMatrix(i=1:(NT/T), j=1:(NT/T), x=1)  - rho * W)
+        WA <- W %*% A
+        asyvar <- matrix(0, nrow = 2 + p, ncol = 2 + p)
+        asyvar[1, 1] <- NT/(2 * (s2^2))
+        asyvar[2, 1] <- asyvar[1, 2] <- T*tr(WA)/s2
+        asyvar[2, 2] <- T*(tr(WA %*% WA) + tr(t(WA) %*% WA))
+        asyvar[3:(p + 2), 3:(p + 2)] <- 1/as.numeric(s2) * (t(xt - rho *wxt) %*% (xt - rho * wxt)) 
+        asyv <- solve(asyvar, tol = con$tol.solve)
+        rownames(asyv) <- colnames(asyv) <- c("sigma","rho", colnames(xt))
+
+        s2.se <- sqrt(asyv[1, 1])
+        rho.se <- asyv[2, 2]
+        asyvar1 <- asyv[-c(1,2),-c(1,2)]
+		init <- c((T/(T+1)), rep(1,p+1))	
+
+		a3 <- rep(0,p)
+		a2 <- 1/(1 - rho)
+		a1 <- 1/(2*s2)
+		a <- c(a1,a2,a3)
+		Bhat <- - (asyv/n) %*% a
+
+
+		coefs1 <- c(s2, rho, betas)
+		Theta2 <- init * coefs1 + Bhat
+ 		betas <- as.numeric(Theta2[(3:(2+p))])
+ 		names(betas) <- colnames(xt)  
+ 		rho <-Theta2[2] 
+        names(rho) <- "rho"
+ 		s2 <-  Theta2[1]
+	    coefs <- c(rho, betas)
+
+	
+	
+	
+}
 
 if(Hess){
 	
-	        fd <- fdHess(coefs, sarpanelerror_hess, env)
+	    fd <- fdHess(coefs, sarpanelerror_hess, env, LeeYu = LeeYu, effects = effects)
         mat <- fd$Hessian
-		  fdHess<- solve(-(mat), tol.solve = tol.solve)
+		fdHess<- solve(-(mat), tol.solve = tol.solve)
         rownames(fdHess) <- colnames(fdHess) <- c("rho",colnames(xt))
 
             rho.se <- fdHess[1, 1]
@@ -263,26 +385,54 @@ else{
         W <- listw2dgCMatrix(listw, zero.policy = zero.policy)
         A <- solve(sparseMatrix(i=1:(NT/T), j=1:(NT/T), x=1)  - rho * W)
         WA <- W %*% A
+
+if(LeeYu && effects == "spfe"){
+
+	T <- T- 1
+	NT <- n*T
+
+}	
+
+if(LeeYu && effects == "tpfe"){
+
+	n <- n-1
+	NT <- n*T
+
+}	
+
+ if(LeeYu && effects == "sptpfe"){
+	n <- n-1
+	T <- T-1
+	NT <- n*T
+}		
+
         asyvar <- matrix(0, nrow = 2 + p, ncol = 2 + p)
         asyvar[1, 1] <- NT/(2 * (s2^2))
         asyvar[2, 1] <- asyvar[1, 2] <- T*tr(WA)/s2
         asyvar[2, 2] <- T*(tr(WA %*% WA) + tr(t(WA) %*% WA))
         asyvar[3:(p + 2), 3:(p + 2)] <- 1/as.numeric(s2) * (t(xt - rho *wxt) %*% (xt - rho * wxt)) 
-        asyv <- solve(asyvar, tol = con$tol.solve)
-        rownames(asyv) <- colnames(asyv) <- c("sigma","rho", colnames(xt))
-        s2.se <- sqrt(asyv[1, 1])
-        rho.se <- asyv[2, 2]
-        asyvar1 <- asyv[-c(1,2),-c(1,2)]
-        # rownames(asyvar1) <- colnames(asyvar1) <- c(colnames(xt))
+        asyva <- solve(asyvar, tol = con$tol.solve)
+        rownames(asyva) <- colnames(asyva) <- c("sigma","rho", colnames(xt))
+        s2.se <- sqrt(asyva[1, 1])
+        rho.se <- asyva[2, 2]
+        asyvar1 <- asyva[-c(1,2),-c(1,2)]
+        asyv <- asyva[-1,-1]
+        rownames(asyvar1) <- colnames(asyvar1) <- colnames(xt)
+
+        
 
 }
 
-	return<-list(coeff=betas, rho = rho, s2 = s2, rest.se = rest.se, rho.se = rho.se, s2.se = s2.se, asyvar1=asyvar1)
+if(Hess) asyv <- NULL        
+else asyv <- asyv
+
+
+	return<-list(coeff=betas, rho = rho, s2 = s2, rest.se = rest.se, rho.se = rho.se, s2.se = s2.se, asyvar1=asyvar1, residuals = r, asyv = asyv)
 }
 
 
 
-sarpanelerror_hess<-function (coef, env=env) 
+sarpanelerror_hess<-function (coef, env=env, LeeYu = LeeYu, effects = effects) 
 {
 	yt<- get("yt", envir = env)
 	xt<- get("xt", envir = env)
@@ -295,16 +445,29 @@ sarpanelerror_hess<-function (coef, env=env)
 	NT<- get("NT", envir = env)
 	inde<- get("inde", envir = env)
 	T<- get("T", envir = env)
+	n <- NT/T
 
-# coefsl <- c(s2, lambda, betas) 
+if(LeeYu && effects == "spfe"){
+	T <- T- 1
+	NT <- n*T
+}	
 
-	# s2 <-  coef[1]
+if(LeeYu && effects == "tpfe"){
+	n <- n-1
+	NT <- n*T
+}	
+
+ if(LeeYu && effects == "sptpfe"){
+	n <- n-1
+	T <- T-1
+	NT <- n*T
+}		
+
 	rho <- coef[1]
 	bb <- coef[-1]
 	 
      yco <- yt - rho * wyt
      xco <- xt - rho * wxt
-     # bb<- solve(crossprod(xco),crossprod(xco, yco) )
 
      ehat<- yco - xco %*% bb
     SSE <- crossprod(ehat)
@@ -321,17 +484,12 @@ if (get("verbose", envir = env))
 
 ###SARAR MODEL
 
-sacsarpanel<-function (coefs, env, LeeYu = LeeYu){
+sacsarpanel<-function (coefs, env){
 
 	lambda <- coefs[1]
     rho <- coefs[2]
   	 T<-get("T", envir = env)
     n <- get("n", envir = env)
-
-if(LeeYu){
-    	T <- T-1
-    	NT <- n*T
-    	}	
 
     SSE <- sacsarpanel_sse(coefs, env)
     s2 <- SSE/n
@@ -340,10 +498,9 @@ if(LeeYu){
 
 ret <- (T * ldet1 + T * ldet2 - (((n*T)/2) * (log(2 * pi)+1)) - (n*T/2) * log(s2))
                         # - (1/(2 * (s2))) * SSE)
-
- # if(get("verbose", envir = env)) cat("lambda:", lambda, " rho:", rho, " function:", 
-             # ret, " Jacobian1:", ldet1, " Jacobian2:", ldet2, 
-             # " SSE:", SSE, "\n")
+if(get("verbose", envir = env)) cat("lambda:", lambda, " rho:", rho, " function:", 
+             ret, " Jacobian1:", ldet1, " Jacobian2:", ldet2, 
+             " SSE:", SSE, "\n")
 -ret
 }
 
@@ -363,7 +520,7 @@ sacsarpanel_sse <- function (coefs, env)
 }
 
 
-spsararlm<-function(env, zero.policy = zero.policy, con = con, llprof = llprof, tol.solve= tol.solve, Hess = Hess, method = method, LeeYu = LeeYu){
+spsararlm<-function(env, zero.policy = zero.policy, con = con, llprof = llprof, tol.solve= tol.solve, Hess = Hess, method = method, LeeYu = LeeYu, effects = effects){
 
 xt <- get("xt", envir = env)
 yt <- get("yt", envir = env)
@@ -378,11 +535,6 @@ wx<-get("wx", envir = env)
 NT<-get("NT", envir = env)
 T<-get("T", envir = env)
 n<-get("n", envir = env)
-
-if(LeeYu){
-	T <- T-1
-	NT <- n*T
-	}
 
 listw<-get("listw", envir = env)
 listw2<-get("listw2", envir = env)
@@ -430,42 +582,42 @@ interval2 <- get("interval2", envir = env)
         if (is.null(pars)) {
             mxs <- apply(mpars, 1, function(pp) -nlminb(pp, sacsarpanel, 
                 env = env, control = con$opt_control, lower = lower, 
-                upper = upper, LeeYu = LeeYu)$objective)
+                upper = upper)$objective)
             pars <- mpars[which.max(mxs), ]
             optres <- nlminb(pars, sacsarpanel, env = env, control = con$opt_control, 
-                lower = lower, upper = upper, LeeYu = LeeYu)
+                lower = lower, upper = upper)
         }
         else {
             optres <- nlminb(pars, sacsarpanel, env = env, control = con$opt_control, 
-                lower = lower, upper = upper, LeeYu = LeeYu)
+                lower = lower, upper = upper)
         }
     }
     else if (con$opt_method == "L-BFGS-B") {
         if (is.null(pars)) {
             mxs <- apply(mpars, 1, function(pp) -optim(pars, 
                 sacsarpanel, env = env, method = "L-BFGS-B", control = con$opt_control, 
-                lower = lower, upper = upper, LeeYu = LeeYu)$objective)
+                lower = lower, upper = upper)$objective)
             pars <- mpars[which.max(mxs), ]
             optres <- optim(pars, sacsarpanel, env = env, method = "L-BFGS-B", 
-                control = con$opt_control, lower = lower, upper = upper, LeeYu = LeeYu)
+                control = con$opt_control, lower = lower, upper = upper)
         }
         else {
             optres <- optim(pars, sacsarpanel, env = env, method = "L-BFGS-B", 
-                control = con$opt_control, lower = lower, upper = upper, LeeYu = LeeYu)
+                control = con$opt_control, lower = lower, upper = upper)
         }
     }
     else {
         if (is.null(pars)) {
             mxs <- apply(mpars, 1, function(pp) -optim(pars, 
                 sacsarpanel, env = env, method = con$opt_method, 
-                control = con$opt_control, LeeYu = LeeYu)$objective)
+                control = con$opt_control)$objective)
             pars <- mpars[which.max(mxs), ]
             optres <- optim(pars, sacsarpanel, env = env, method = con$opt_method, 
-                control = con$opt_control, LeeYu = LeeYu)
+                control = con$opt_control)
         }
         else {
             optres <- optim(pars, sacsarpanel, env = env, method = con$opt_method, 
-                control = con$opt_control, LeeYu = LeeYu)
+                control = con$opt_control)
         }
     }
     
@@ -479,9 +631,6 @@ interval2 <- get("interval2", envir = env)
     lambda <- optres$par[1]
     names(lambda) <- "lambda"
 
-    # timings[["coefs"]] <- proc.time() - .ptime_start
-    # .ptime_start <- proc.time()
-    # assign("first_time", TRUE, envir = env)
 
     
     lm.target <- lm(I(yt - lambda * wyt - rho * w2yt + rho * lambda * 
@@ -490,16 +639,101 @@ interval2 <- get("interval2", envir = env)
     r <- as.vector(residuals(lm.target))
     fit <- as.vector(yt - r)
     p <- lm.target$rank
-    SSE <- deviance(lm.target)
-    s2 <- SSE/NT
+    SSE <- crossprod(residuals(lm.target))
+    s2 <- as.numeric(SSE)/NT
+
+if(LeeYu && effects == "spfe") s2 <- (T/(T-1)) * as.numeric(s2)	
+if(LeeYu && effects == "tpfe") s2 <- (n/(n-1)) * as.numeric(s2)	
+
     betas <- coefficients(lm.target)
     names(betas) <- colnames(xt)  
-	# coefs <- c(lambda, rho, betas)
-	coefs <- c(lambda, rho, betas)
+	 coefs <- c(lambda, rho, betas)
+
+if(LeeYu && effects == "sptpfe"){
+	    
+	    tr <- function(A) sum(diag(A))
+        W1 <- listw2dgCMatrix(listw, zero.policy = zero.policy)
+        W2 <- listw2dgCMatrix(listw2, zero.policy = zero.policy)
+        Sl <- sparseMatrix(i=1:(NT/T), j=1:(NT/T), x=1)  - lambda * W1
+        Rr <- sparseMatrix(i=1:(NT/T), j=1:(NT/T), x=1)  - rho * W2
+        Slinv <- solve(Sl)
+        Rrinv <- solve(Rr)
+        Gmat <- W1 %*% Slinv
+        Hmat <- W2 %*% Rrinv        
+        It <- sparseMatrix(i=1:T, j=1:T, x=1)         
+        Jn <- Diagonal(n) - (1/n) * outer(rep(1,n),rep(1,n))
+
+
+# Equation 53 Lee and Yu         
+        Wdot <- Rr %*% W1  %*% Rrinv
+        Gdot <- Rr %*% Gmat  %*% Rrinv
+        GS <- t(Gdot) + Gdot
+        HS <- t(Hmat) + Hmat
+        Rrbig <- kronecker(It,Rr)
+        RriB  <- kronecker(It,Rrinv) 
+        GdotB<-  kronecker(It,Gdot)
+        WdotB<-  kronecker(It,Wdot)
+        JnB <- kronecker(It,Jn)
+        Xdot <-  Rrbig %*% xt  
+        JXdot <- JnB %*% Xdot
+        GdXdb <- GdotB %*% Xdot %*% betas
+        JGdXdb <- JnB %*% GdotB %*% Xdot %*% betas
+        
+	    fp   <- (1/s2) * crossprod(GdXdb, JGdXdb)
+        lala <- fp + (T * tr(GS %*% Jn %*% Gdot))
+        laro <- T * tr(HS %*% Jn %*% Gdot) 
+        lasi <- (1/s2) * T * tr(Gdot) 
+        roro <- T * tr(HS %*% Hmat)
+        rosi <- (1/s2) * T * tr(Hmat)
+        sisi <- NT/(2*s2*s2)
+        bebe <- (1/s2) * crossprod(Xdot, JXdot)       
+        bela <- (1/s2) * crossprod(GdXdb, JXdot)
+        
+        asyvar <- matrix(0, nrow = 3 + p, ncol = 3 + p)
+        asyvar[1:p, 1:p] <- as.matrix(bebe) 
+        asyvar[p+1, 1:p] <- asyvar[1:p, p+1] <- as.numeric(bela)
+        asyvar[p+2, 1:p] <- asyvar[1:p, p+2] <- 0
+        asyvar[p+3, 1:p] <- asyvar[1:p, p+3] <- 0
+        asyvar[p+2, p+1] <- asyvar[p+1, p+2] <- as.numeric(laro)
+        asyvar[p+3, p+1] <- asyvar[p+1, p+3] <- as.numeric(lasi)
+        asyvar[p+3, p+2] <- asyvar[p+2, p+3] <- as.numeric(rosi)        
+        asyvar[1+p, 1+p] <- as.matrix(lala)
+        asyvar[2+p, 2+p] <- as.matrix(roro)
+        asyvar[3+p, 3+p] <- as.matrix(sisi)
+        asyv <- solve(asyvar, tol = con$tol.solve)
+
+		a1 <- rep(0,p)
+		a2 <- as.numeric((1/n) * rep(1,n) %*% Gdot %*% rep(1,n))
+		a3 <- as.numeric((1/n) * rep(1,n) %*% Hmat %*% rep(1,n))
+		a4 <- as.numeric(1/(2*s2))
+		a <- c(a1,a2,a3,a4)
+		Bhat <- - asyv %*% a
+		At <- matrix(0, nrow = 3 + p, ncol = 3 + p)
+		At[(1:(p+2)), (1:(p+2))]<- diag((p+2))
+		At[(1:(p+2)), 3+p] <- rep(0,p+2)
+		At[3+p,(1:(p+2))] <- rep(0,p+2)
+		At[3+p, 3+p] <- T/(T-1)
+		coefs1 <- c(betas, lambda, rho, s2) 
+		Theta1 <- coefs1 - (Bhat/n)
+		Theta2 <- At %*% Theta1
+ 		betas <- Theta2[1:p]
+ 		names(betas) <- colnames(xt)  
+ 		lambda <-Theta2[p+1] 
+ 		rho <- Theta2[p+2]
+ 		names(rho) <- "rho"
+        names(lambda) <- "lambda"
+ 		s2 <-  Theta2[p+3]
+	    coefs <- c(lambda, rho, betas)
+	
+}
+
 
 ###Add the vc matrix exact
-if(Hess){        
-        fd <- fdHess(coefs, f_sacpanel_hess, env, LeeYu = LeeYu)
+if(Hess){    
+
+# if(LeeYu && effects == "sptpfe") stop("Numerical Hessian should not be calculated when 'LeeYu = TRUE' and effects are 'twoways' ")
+	    
+        fd <- fdHess(coefs, f_sacpanel_hess, env, LeeYu = LeeYu, effects = effects)
         mat <- fd$Hessian
 		  fdHess<- solve(-(mat), tol.solve = tol.solve)
         rownames(fdHess) <- colnames(fdHess) <- c("lambda", "rho",colnames(xt))
@@ -511,7 +745,8 @@ if(Hess){
             }
             
             else{
-
+            	
+   
         tr <- function(A) sum(diag(A))
         W1 <- listw2dgCMatrix(listw, zero.policy = zero.policy)
         W2 <- listw2dgCMatrix(listw2, zero.policy = zero.policy)
@@ -521,22 +756,8 @@ if(Hess){
         Rrinv <- solve(Rr)
         Gmat <- W1 %*% Slinv
         Hmat <- W2 %*% Rrinv        
-        # Gmat2 <- Gmat %*% Gmat
-        # Hmat2 <- Hmat %*% Hmat
+        It <- sparseMatrix(i=1:T, j=1:T, x=1)         
         
-if(LeeYu)	dim <- T+1
-else        dim <- T 
-        It <- sparseMatrix(i=1:dim, j=1:dim, x=1) 
-        
-        
-        # Slinv <- kronecker(It,Slinv)
-        # Rrinv <- kronecker(It,Rrinv)
-        # Gmat <- kronecker(It,Gmat)
-        # Hmat <- kronecker(It,Hmat)
-        # W1 <- kronecker(It,W1)
-        # W2 <- kronecker(It,W2)
-        # Rr<- kronecker(It,Rr)
-        # Sl<- kronecker(It,Sl)
 
 # Equation 39 Lee and Yu         
         Wdot <- Rr %*% W1  %*% Rrinv
@@ -549,9 +770,23 @@ else        dim <- T
         WdotB<-  kronecker(It,Wdot)
         Xdot <-  Rrbig %*% xt  
         GdXdb <- GdotB %*% Xdot %*% betas
+   
         
+if(LeeYu && effects == "spfe"){
+	T <- T- 1
+	NT <- n*T
+}	
 
+if(LeeYu && effects == "tpfe"){
+	n <- n-1
+	NT <- n*T
+}	
 
+if(LeeYu && effects == "sptpfe"){
+	n <- n-1
+	T <- T-1
+	NT <- n*T
+}		
         fp   <- (1/s2) *crossprod(GdXdb)
         lala <- fp + (T * tr(GS %*% Gdot))
         laro <- T * tr(HS %*% Gdot) 
@@ -562,36 +797,7 @@ else        dim <- T
         bebe <- (1/s2) * crossprod(Xdot)       
         bela <- (1/s2) * crossprod(GdXdb, Xdot)
         
-        # Rrxt <- Rr %*% xt
-        # bebe <- (1/s2) * crossprod(Rrxt)
-        # RrWyt <- Rr %*% W1 %*% yt
-        # bela <- (1/s2) * crossprod(RrWyt, Rrxt)
-        # Vxsi <- Rr %*% (Sl %*% yt - xt %*% betas)
-        # HVxsi <- Hmat %*% Vxsi
-        # bero1 <- (1/s2) * crossprod(HVxsi, Rrxt) 
-        # Mxt <- W2 %*% xt
-        # bero2 <- (1/s2) * crossprod(Vxsi, Mxt)         
-        # bero <- bero1 + bero2
-        # besi<- (1/s2) * (1/s2) * crossprod(Vxsi, Rrxt)
-        # lala1 <- (1/s2) *crossprod(RrWyt)
-        # lala2 <- T* tr(Gmat2) 
-        # lala <- lala1 + lala2        
-        # laro1 <- (1/s2) *crossprod(RrWyt, HVxsi)
-        # MWyt <- W2 %*% W1 %*% yt
-        # laro2 <- (1/s2) *crossprod(MWyt, Vxsi)
-        # laro <- laro1 + laro2
-        # lasi <- (1/s2) * (1/s2) * crossprod(RrWyt, Vxsi)  
-        # roro1 <- (1/s2) * crossprod(HVxsi) 
-        # roro2 <- T * tr(Hmat2) 
-        # roro <- roro1 + roro2
-        # rosi <- (1/s2) * (1/s2) * crossprod(HVxsi, Vxsi)          
-        # sisi1 <-  - (n*T)/(2*s2*s2)
-        # sisi2 <- (1/(s2)^3) * crossprod(Vxsi)
-        # sisi <-  sisi1  + sisi2
-
         asyvar <- matrix(0, nrow = 3 + p, ncol = 3 + p)
-        # print(dim(bela))
-        # print(p)
         asyvar[1:p, 1:p] <- as.matrix(bebe) 
         asyvar[p+1, 1:p] <- asyvar[1:p, p+1] <- as.numeric(bela)
         asyvar[p+2, 1:p] <- asyvar[1:p, p+2] <- 0
@@ -602,37 +808,47 @@ else        dim <- T
         asyvar[1+p, 1+p] <- as.matrix(lala)
         asyvar[2+p, 2+p] <- as.matrix(roro)
         asyvar[3+p, 3+p] <- as.matrix(sisi)
-# print(asyvar)
- 
-         # asyvar <- NT * asyvar
-        asyv <- solve(asyvar, tol = con$tol.solve)
- # print(sqrt(diag(asyv)))        
-        rownames(asyv) <- colnames(asyv) <- c(colnames(xt), "lambda", "rho", "sigma")
-        s2.se <- asyv[3+p, 3+p]
-        rho.se <- asyv[2+p, 2+p]
-        lambda.se <- asyv[1+p, 1+p]
-        # print(rho.se)
-        # print(lambda.se)
-        rest.se <- sqrt(diag(asyv))[-((p+1):(p+3))]
-        asyvar1 <- asyv[-((p+1):(p+3)),-((p+1):(p+3))]
+        asyva <- solve(asyvar, tol = con$tol.solve)
+        rownames(asyva) <- colnames(asyva) <- c(colnames(xt), "lambda", "rho", "sigma")
 
-# stop("Asymptotic VC matrix not yet implemented for model SARAR")
+        s2.se <- asyva[3+p, 3+p]
+        rho.se <- asyva[2+p, 2+p]
+        lambda.se <- asyva[1+p, 1+p]
+        rest.se <- sqrt(diag(asyva))[-((p+1):(p+3))]
+        asyvar1 <- asyva[-((p+1):(p+3)),-((p+1):(p+3))]
+        asyv <- asyva[-(p+3),-(p+3)]
+
+
             	}
 
+if(Hess) asyv <- NULL        
+else asyv <- asyv
+        
 
-return<-list(coeff = betas, lambda = lambda, rho = rho, s2 = s2, asyvar1 = asyvar1, lambda.se = lambda.se, rho.se = rho.se, s2.se = s2.se)	
+return<-list(coeff = betas, lambda = lambda, rho = rho, s2 = s2, asyvar1 = asyvar1, lambda.se = lambda.se, rho.se = rho.se, s2.se = s2.se, residuals = r, asyv = asyv)	
 	}
 
-f_sacpanel_hess <- function (coefs, env, LeeYu = LeeYu) 
+f_sacpanel_hess <- function (coefs, env, LeeYu = LeeYu, effects = effects) 
 {
 	T<-get("T", envir = env)
 	NT<-get("NT", envir = env)
 	n<-get("n", envir = env)
 
-if(LeeYu){
+if(LeeYu && effects == "spfe"){
+	T <- T- 1
+	NT <- n*T
+}	
+
+if(LeeYu && effects == "tpfe"){
+	n <- n-1
+	NT <- n*T
+}	
+
+if(LeeYu && effects == "sptpfe"){
+	n <- n-1
 	T <- T-1
 	NT <- n*T
-	}
+}		
 
     lambda <- coefs[1] 
     rho <- coefs[2]
@@ -645,8 +861,10 @@ if(LeeYu){
     ldet1 <- do_ldet(lambda, env, which = 1)
     ldet2 <- do_ldet(rho, env, which = 2)
    
-ret <- (T * ldet1 + T * ldet2 - (((n*T)/2) * (log(2 * pi)+1)) - (n*T/2) * log(s2))
+#ret <- (T * ldet1 + T * ldet2 - (((n*T)/2) * (log(2 * pi))) - (n*T/2) * log(s2))
                         # - (1/(2 * (s2))) * SSE)
+ret <- (T * ldet1 + T * ldet2 - ((n*T/2) * log(2 * pi)) - (n*T/2) * log(s2) - 
+        (1/(2 * s2)) * SSE)
 
 
     if (get("verbose", envir = env)) cat("rho:", rho, "lambda:", lambda, " function:", ret, 
@@ -655,7 +873,7 @@ ret <- (T * ldet1 + T * ldet2 - (((n*T)/2) * (log(2 * pi)+1)) - (n*T/2) * log(s2
     ret
 }
 
-sar_sac_hess_sse_panel <- function (lambda, rho, beta, env) 
+sar_sac_hess_sse_panel <- function (lambda, rho,  beta, env) 
 {
     yl <- get("yt", envir = env) - lambda * get("wyt", envir = env) - 
         rho * get("w2yt", envir = env) + rho * lambda * get("w2wyt", 

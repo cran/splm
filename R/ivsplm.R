@@ -1,16 +1,23 @@
+ivsplm <-function(formula,data=list(), index=NULL, endog = NULL, instruments= NULL, method = c("w2sls", "b2sls", "g2sls", "ec2sls"), lag = FALSE, listw = listw, effects = NULL, lag.instruments = FALSE){
 
-ivsplm<-function(formula,data=list(), index=NULL, endog = NULL, instruments= NULL, method = c("w2sls", "b2sls", "g2sls", "ec2sls"), lag = FALSE, listw, effects = NULL){
-
+# If the user do not make any choice in terms of method, when effects is Fixed the function calculates the w2sls. On the other hand, when effects is random the function calculates the ec2sls
 if(length(method) !=1 && effects == "fixed") method <- "w2sls" 	
 if(length(method) !=1 && effects == "random") method <- "ec2sls" 	
 		
-  if(!is.null(index)) {
-    require(plm)
+ if(!is.null(index)) {
+    #require(plm)
     data <- plm.data(data, index)
     }
   
   index <- data[,1]
   tindex <- data[,2]
+
+  names(index)<-row.names(data)
+  ind <-index[which(names(index)%in%row.names(data))]
+  tind<-tindex[which(names(index)%in%row.names(data))]
+   spord <- order(tind, ind)
+   data <-  data[spord,]
+
 
   ## record call
   cl <- match.call()
@@ -23,110 +30,75 @@ if(length(method) !=1 && effects == "random") method <- "ec2sls"
 
     y <- model.extract(mf, "response")
     x <- model.matrix(mt, mf)
-    
-  names(index)<-row.names(data)
-  ind<-index[which(names(index)%in%row.names(x))]
-  tind<-tindex[which(names(index)%in%row.names(x))]
-  
-#if (lag)  {
-#	 oo <- order(tind, ind)
-#    xs <- x[oo, ]
-#    ys <- y[oo]
-#    inds <- ind[oo]
-#    tinds <- tind[oo]
-#
-#	}
-#  
+ 
   N<-length(unique(ind))
   k<-dim(x)[[2]]
   T<-max(tapply(x[,1],ind,length))
   NT<-length(ind)
 
 
+
   balanced<-N*T==NT
 if(!balanced) stop("Estimation method unavailable for unbalanced panels")
 
-
+# print(listw)
+#### creating the block diagonal matrix
+if(lag){
+I_T <- Diagonal(T)
+Ws <- kronecker(I_T, listw)
+}
+# else Ws <- NULL
 
 if(!lag){
-if(is.null(endog)) stop("No engogenous variables specified")
-if(is.character(endog)){
-	xend<-match(endog,colnames(data))
-	endog <- data[,xend]
-	}
-kend <- ncol(endog) 
-# print(kend)
 	
-if(is.null(instruments)) stop("No instruments specified")
-if(is.character(instruments)){
-	inst<-match(instruments,colnames(data)) 
-	instruments <- data[,inst]
-	}
-kinst <- ncol(instruments) 
+if(is.null(endog)) stop("No endogenous variables specified. Please use plm instead of splm")
 
-if(kinst < kend) stop("The model is not identified: Not enough instruments specified")
+else {
+	endog <- as.matrix(lm(endog, data, na.action = na.fail, method = "model.frame"))
+
+if(!is.null(listw)){
+I_T <- Diagonal(T)
+Ws <- kronecker(I_T, listw)
+	
+}	
+	}
+
+if(is.null(instruments)) stop("No instruments specified")
+
+else instruments <- as.matrix(lm(instruments, data, na.action = na.fail, method = "model.frame"))
+
 }
 
 
+else{
 
+if(!is.null(endog)){
 
-if(lag){
-	
-if (is.matrix(listw)){
-        if(dim(listw)[[1]] != N) 
-            stop("Non conformable spatial weights")
-        require(spdep)
-        listw <- mat2listw(listw)
-    }
-    else{
+endog <- as.matrix(lm(endog, data, na.action = na.fail, method = "model.frame"))
 
-if(length(listw$neighbours)!=N	)stop("Non conformable spatial weights")
-    	
-    	}
+if(is.null(instruments)) stop("No instruments specified for the additional variable")
 
-if (!inherits(listw, c("listw", "matrix"))) 
-        stop("listw should be either a matrix of an object of class listw")
+else instruments <- as.matrix(lm(instruments, data, na.action = na.fail, method = "model.frame"))	
 
-if(is.null(endog) && lag == FALSE) stop("No engogenous variables specified")
-
-if(is.character(endog)){
-	xend<- match(endog,colnames(data))  
-	endog <- data[,xend]
-if(is.null(instruments)) warnings("Spatially lagged exogenous variables will be used as instruments")
-kend <- ncol(endog)  + 1
+		
 	}
-else kend <-  1
-
-
-kint<-ifelse(colnames(x)[1]=="(Intercept)", 1, 0)
-#print(kint)
-if(is.character(instruments)){
-	inst<- match(instruments,colnames(data))
-	instruments <- data[,inst]
-kinst <- ncol(instruments)  + kint + ncol(as.matrix(x[,-kint]))*3
+	else instruments = NULL
 	}
-	
-else kinst <-  kint + ncol(as.matrix(x[,-kint]))*3
-#print(kinst)
-if(kinst < kend) stop("The model is not identified: Not enough instruments specified")
-	
-	}
-
 
 
 
 switch(method, 
 w2sls = {
-	result <- ivplm.w2sls(Y = y,X =x, H = instruments, endog = endog, ind = ind, tind = tind, lag = lag, listw = listw)
+	result <- ivplm.w2sls(Y = y, X = x, H = instruments, endog = endog, lag = lag, listw = Ws, lag.instruments = lag.instruments, T = T, N = N, NT = NT)
 	},
 b2sls = {
-	result <- ivplm.b2sls(Y = y,X =x, H = instruments, endog = endog, ind = ind, tind = tind, lag = lag, listw = listw)
+	result <- ivplm.b2sls(Y = y,X =x, H = instruments, endog = endog, lag = lag, listw = Ws, lag.instruments = lag.instruments, T = T, N = N, NT = NT)
 	},
 ec2sls = {
-	result <- ivplm.ec2sls(Y = y,X =x, H = instruments, endog = endog, ind = ind, tind = tind, lag = lag, listw = listw)
+	result <- ivplm.ec2sls(Y = y,X =x, H = instruments, endog = endog, lag = lag, listw = Ws, lag.instruments = lag.instruments, T = T, N = N, NT = NT)
 	},
 g2sls = {
-	result <-ivplm.g2sls(Y = y,X =x, H = instruments, endog = endog, ind = ind, tind = tind, lag = lag, listw = listw)
+	result <-ivplm.g2sls(Y = y,X =x, H = instruments, endog = endog, lag = lag, listw = Ws, lag.instruments = lag.instruments, T = T, N = N, NT = NT )
 	},
 stop("...\nUnknown method\n"))
 
@@ -134,20 +106,10 @@ stop("...\nUnknown method\n"))
     result$zero.policy <- FALSE
     result$robust <- FALSE
     result$legacy <- FALSE
-    result$listw_style <- FALSE
+    result$listw_style <- NULL
     result$call <- match.call()
+
 
 class(result) <- "stsls"
 result
 }
-
-
-
-
-
-
-
-
-
-
- 

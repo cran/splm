@@ -50,7 +50,7 @@ function (X, y, ind, tind, n, k, t., nT, w, w2, coef0 = rep(0, 2),
         lambda <- lambdapsi[1]
         psi <- lambdapsi[2]                       # lag-specific line
         ## calc inverse sigma
-        sigma.1 <- invSigma(lambdapsi, n, t., w)
+        sigma.1 <- invSigma(lambdapsi, n, t., w2)
         ## lag y
         Ay <- y - psi * wy                        # lag-specific line
         ## do GLS step to get e, s2e
@@ -58,8 +58,8 @@ function (X, y, ind, tind, n, k, t., nT, w, w2, coef0 = rep(0, 2),
         e <- glsres[["ehat"]]
         s2e <- glsres[["sigma2"]]
         ## calc ll
-        zero <- t.*ldetB(psi, w2)              # lag-specific line (else zero <- 0)
-        due <- detSigma(lambda, t., w)
+        zero <- t.*ldetB(psi, w)              # lag-specific line (else zero <- 0)
+        due <- detSigma(lambda, t., w2)
         tre <- -n * t./2 * log(s2e)
         quattro <- -1/(2 * s2e) * t(e) %*% sigma.1 %*% e
         const <- -(n * t.)/2 * log(2 * pi)
@@ -110,7 +110,7 @@ function (X, y, ind, tind, n, k, t., nT, w, w2, coef0 = rep(0, 2),
     }
 
     ## lag y once for all
-    wy <- Wy(y, w2, tind)                          # lag-specific line
+    wy <- Wy(y, w, tind)                          # lag-specific line
 
      ## optimization
 
@@ -136,7 +136,7 @@ function (X, y, ind, tind, n, k, t., nT, w, w2, coef0 = rep(0, 2),
 
     } else {
 
-        require(maxLik)
+        #require(maxLik)
 
         ## initial values are not allowed to be zero
         maxout<-function(x,a) ifelse(x>a, x, a)
@@ -163,7 +163,7 @@ function (X, y, ind, tind, n, k, t., nT, w, w2, coef0 = rep(0, 2),
     }
 
     ## one last GLS step at optimal vcov parms
-    sigma.1 <- invSigma(myparms, n, t., w)
+    sigma.1 <- invSigma(myparms, n, t., w2)
     Ay <- y - myparms[length(myparms)] * wy       # lag-specific line
     beta <- GLSstep(X, Ay, sigma.1)
 

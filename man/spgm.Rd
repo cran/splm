@@ -20,12 +20,12 @@ additional (other than the spatial lag) endogenous variables.
 }
 
 \usage{
-spgm(formula, data=list(), index=NULL, listw,
- model=c("within","random"), lag=FALSE, spatial.error=FALSE,
- moments = c("initial", "weights", "fullweights"), endog = NULL,
- instruments= NULL, verbose = FALSE,
- method = c("w2sls", "b2sls", "g2sls", "ec2sls"),
- control = list())
+spgm(formula, data=list(), index=NULL, listw =NULL, listw2 = NULL,
+         model=c("within","random"), lag = FALSE, spatial.error=TRUE,
+         moments = c("initial", "weights", "fullweights"), endog = NULL, 
+         instruments= NULL, lag.instruments = FALSE, verbose = FALSE, 
+         method = c("w2sls", "b2sls", "g2sls", "ec2sls"), control = list(), 
+         optim.method = "nlminb", pars = NULL)
 }
 
 \arguments{
@@ -34,8 +34,9 @@ spgm(formula, data=list(), index=NULL, listw,
   \item{data}{an object of class \code{data.frame} or \code{pdata.frame}. An optional data frame containing the variables
   in the model. When the obect is a \code{data.frame}, the first two columns may contain the indexes. See \code{index}}
   \item{index}{if not NULL (default), a character vector to identify the indexes among the columns of the \code{data.frame}}
-  \item{listw}{an object of class \code{listw} created for example by \code{nb2listw}. 
-  If a \code{matrix} is given as input the function will transform it using \code{mat2listw}}
+  \item{listw}{an object of class \code{listw}, \code{matrix}, or \code{Matrix}}. 
+  \item{listw2}{an object of class \code{listw}, \code{matrix}, or \code{Matrix}. Only 
+  if both \code{lag} and \code{spatial.error} are both \code{TRUE}}
   \item{model}{One of \code{"within"} or \code{"random"}. The assumption
     made on the individual effects}
   \item{lag}{if \code{TRUE} a spatial lag of the dependent variable is
@@ -43,11 +44,18 @@ spgm(formula, data=list(), index=NULL, listw,
   \item{spatial.error}{a logic vector. If \code{TRUE} the spatial autoregressive error term is added to the model and an estimate for \eqn{\rho} is produced}
   \item{moments}{\code{"initial"} (default) defines the set of GM estimator to be used. Alternatives are  
   \code{"weights"} and \code{"fullweights"} (See Details)}
-  \item{endog}{default \code{NULL}. A string with the name of additional (other than the spatial lag) endogenous variables}
-  \item{instruments}{default \code{NULL}. Either a matrix or a string with the name of the specific instruments for the additional endogenous variables}
+  \item{endog}{additional endogenous variables. Default \code{NULL}. If not \code{NULL} should be specified 
+as a formula with no dependent variable (endog = ~ x1 + x2). Note the ~ before the expression. }
+  \item{instruments}{external instruments. Default \code{NULL}. If not \code{NULL} should be specified 
+as a formula with no dependent variable (instruments = ~ x1 + x2). Note the ~ before the expression.}
+\item{lag.instruments}{should the external instruments be spatially lagged?}
   \item{verbose}{default \code{FALSE}, If \code{TRUE} reports function values during optimization}  
   \item{method}{One of \code{"w2sls"}, \code{"b2sls"}, \code{"g2sls"}, \code{"ec2sls"}. (See Details)}
   \item{control}{a list of control parameters for the optimization}
+    \item{optim.method}{default set to \code{"nlminb"}. or optionally a method passed to \code{optim} to use an alternative optimizer.}
+    \item{pars}{initial values of the parameter \code{rho} and \code{sigmav}. The default for \code{rho} is to 
+    start from a regression of the spatially lagged residuals on the residuals (depending on the model). 
+    For \code{sigmav} the starting value is the variance of the residuals (again this depends on the model).  }
 }
 
 
@@ -137,7 +145,7 @@ URL http://www.jstatsoft.org/v47/i01/.
 
 
 \examples{
-data(Produc, package = "Ecdat") 
+data(Produc, package = "plm") 
 data(usaww)
 GM <- spgm(log(gsp)~log(pcap)+log(pc)+log(emp)+unemp, data=Produc,
            listw = usaww, moments="fullweights", spatial.error = TRUE)

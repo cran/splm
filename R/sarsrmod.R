@@ -57,7 +57,7 @@ function (X, y, ind, tind, n, k, t, nT, w, w2, coef0 = rep(0, 2),
     }                                             # lag-specific line
 
     ## lag y once for all
-    wy <- Wy(y, w2, tind)                          # lag-specific line
+    wy <- Wy(y, w, tind)                          # lag-specific line
 
     ## the sigma matrix is inverted during the GLS step and not before as
     ## in the other cases, to take advantage of specialized methods in the
@@ -122,7 +122,7 @@ function (X, y, ind, tind, n, k, t, nT, w, w2, coef0 = rep(0, 2),
         e <- glsres[["ehat"]]
         s2e <- glsres[["sigma2"]]
         ## calc ll
-        zero <- t*ldetB(psi, w2)              # lag-specific line (else zero <- 0)
+        zero <- t*ldetB(psi, w)              # lag-specific line (else zero <- 0)
         uno <- n/2 * log(1 - rho^2)
         tre <- -(n * t)/2 * log(s2e)
         cinque <- -1/(2 * s2e) * crossprod(e, solve(sigma, e))

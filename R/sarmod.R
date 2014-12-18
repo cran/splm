@@ -83,7 +83,7 @@ function (X, y, ind, tind, n, k, t, nT, w, w2, coef0 = 0,
     }
 
     ## lag y once for all
-    wy <- Wy(y, w2, tind)                          # lag-specific line
+    wy <- Wy(y, w, tind)                          # lag-specific line
 
     ## max likelihood
     optimum <- nlminb(start = myparms0, objective = ll.c,

@@ -1,10 +1,12 @@
-spfeml<-function(formula, data=list(), index=NULL, listw, listw2 = NULL, na.action, model = c("lag","error", "sarar"),effects = c('spfe','tpfe','sptpfe'), method="eigen", quiet = TRUE, zero.policy = NULL, interval1 = NULL, interval2 = NULL, trs1 = NULL, trs2 = NULL, tol.solve = 1e-10, control = list(), legacy = FALSE, llprof = NULL, cl = NULL, Hess = TRUE, LeeYu = FALSE, ...){
+spfeml<-function(formula, data=list(), index=NULL, listw, listw2 = NULL, na.action, model = c("lag","error", "sarar"), effects = c('spfe','tpfe','sptpfe'), method="eigen", quiet = TRUE, zero.policy = NULL, interval1 = NULL, interval2 = NULL, trs1 = NULL, trs2 = NULL, tol.solve = 1e-10, control = list(), legacy = FALSE, llprof = NULL, cl = NULL, Hess = FALSE, LeeYu = FALSE, ...){
 
 	  
         # timings <- list()
        # .ptime_start <- proc.time()
 
 model<-match.arg(model)
+effects <- match.arg(effects)
+
 
 if (model == "sarar") con <- list(LAPACK = FALSE,  Imult = 2L, cheb_q = 5L, MC_p = 16L, MC_m=30L, super=FALSE, opt_method = "nlminb", opt_control = list(), pars = NULL, npars = 4L, pre_eig1 = NULL, pre_eig2 = NULL)
 
@@ -18,9 +20,9 @@ con[(namc <- names(control))] <- control
     if (length(noNms <- namc[!namc %in% nmsC])) 
             warning("unknown names in control: ", paste(noNms, collapse = ", "))
 
-    if (is.null(quiet)) 
-	quiet <- !get("verbose", envir = spdep:::.spdepOptions)
-    stopifnot(is.logical(quiet))
+##    if (is.null(quiet)) # now this has a default in spml(), hence it never is
+##	quiet <- !get("verbose", envir = spdep:::.spdepOptions)
+##    stopifnot(is.logical(quiet))
 
 	if (is.null(zero.policy))
             zero.policy <- get.ZeroPolicyOption()
@@ -29,7 +31,7 @@ con[(namc <- names(control))] <- control
 	  
 	  ## reorder data if needed
   if(!is.null(index)) {
-    require(plm)
+    #require(plm)
     data <- plm.data(data, index)
     }
 
@@ -53,6 +55,9 @@ effects<-match.arg(effects)
 
   ## reduce X,y to model matrix values (no NAs)
   x<-model.matrix(formula,data=data)
+  clnames <- colnames(x)
+  rwnames <- rownames(x)
+
   y<-model.response(model.frame(formula,data=data))
   ## reduce index accordingly
   names(index)<-row.names(data)
@@ -66,32 +71,25 @@ effects<-match.arg(effects)
   ind<-ind[oo]
   tind<-tind[oo]
 
-  clnames<-colnames(x)
-  rwnames<-rownames(x)
+
   #make sure that the model has no intercept if effects !=pooled
-  if (colnames(x)[1]=="(Intercept)") {
-  	x<-x[,-1]
-  	#cat('\n Warning: x may not contain an intercept if fixed effects are specified \n')
-	}
-
-if(is.vector(x)){
-  k<-1 
-  x<-matrix(x)
-  colnames(x)<-clnames[-1]
-  dimnames(x)[[1]]<-rwnames
-  dimnames(x)[[2]]<-clnames[-1]
+  if (attr(attributes(model.frame(formula,data=data))$terms, "intercept") == 1) {
+  	x <- as.matrix(x[,-1])
+    colnames(x)<-clnames[-1]
+    dimnames(x)[[1]]<-rwnames
+    clnames <- clnames[-1]
   }
-  else   k<-dim(x)[[2]]
-
-  
-
+	x <- as.matrix(x)
+    k <- dim(x)[2]
+      
+    
 
   ## det. number of groups and df
   N<-length(unique(ind))
   n<-N
-  #x<-matrix(x,length(ind),k)
   ## det. max. group numerosity
-  T<-max(tapply(x[,1],ind,length))
+  T<-max(tapply(tind,ind,length))
+
   ## det. total number of obs. (robust vs. unbalanced panels)
   NT<-length(ind)
 
@@ -105,7 +103,7 @@ if(is.vector(x)){
 ##checks on listw
   if(is.matrix(listw)) {
     if(dim(listw)[[1]] !=N ) stop("Non conformable spatial weights")
-    require(spdep)
+    #require(spdep)
     listw <- mat2listw(listw)
    }
   if (!inherits(listw, "listw"))
@@ -113,7 +111,7 @@ if(is.vector(x)){
      
  		can.sim <- FALSE
     if (listw$style %in% c("W", "S")) 
-        can.sim <- spdep:::can.be.simmed(listw)
+        can.sim <- can.be.simmed(listw)
     if (!is.null(na.act)) {
         subset <- !(1:length(listw$neighbours) %in% na.act)
         listw <- subset(listw, subset, zero.policy = zero.policy)
@@ -142,7 +140,7 @@ if(model == "sarar"){
 
     can.sim2 <- FALSE
     if (listw2$style %in% c("W", "S")) 
-        can.sim2 <- spdep:::can.be.simmed(listw2)
+        can.sim2 <- can.be.simmed(listw2)
     if (!is.null(na.act)) {
         subset <- !(1:length(listw2$neighbours) %in% na.act)
         listw2 <- subset(listw2, subset, zero.policy = zero.policy)
@@ -261,21 +259,21 @@ if(model=="sarar")	{
 if 	(model == "error"){
 	dm<-function(A) trash<-unlist(tapply(A,inde,function(TT) lag.listw(listw,TT), simplify=TRUE))
    wxt<-apply(xt,2,dm)
-   colnames(wxt)<-paste('Lag.',colnames(x), sep="")
+   # colnames(wxt)<-paste('Lag.',colnames(x), sep="")
    wx<-apply(x,2,dm)
-   colnames(wx)<-paste('lag.',colnames(x), sep="")
+   # colnames(wx)<-paste('lag.',colnames(x), sep="")
 	}
 
 if 	(model == "sarar"){
 	dm<-function(A) trash<-unlist(tapply(A,inde,function(TT) lag.listw(listw2,TT), simplify=TRUE))
    wxt<-apply(xt,2,dm)
-   colnames(wxt)<-paste('Lag.',colnames(x), sep="")
+   # colnames(wxt)<-paste('Lag.',colnames(x), sep="")
    wx<-apply(x,2,dm)
-   colnames(wx)<-paste('lag.',colnames(x), sep="")
+   # colnames(wx)<-paste('lag.',colnames(x), sep="")
 	}
 
-
-colnames(xt)<-dimnames(x)[[2]]
+# print(clnames)
+colnames(xt)<- clnames
 
 	
 
@@ -305,6 +303,8 @@ if(model %in% c("lag", "error") ){
 
 }
 
+
+
 assign("verbose", !quiet, envir = env)
 # assign("first_time", TRUE, envir = env)
 assign("LAPACK", con$LAPACK, envir = env)
@@ -315,66 +315,16 @@ assign("inde",inde, envir=env)
 assign("con", con, envir=env)
 
 
-# timings[["set_up"]] <- proc.time() - .ptime_start
-# .ptime_start <- proc.time()
-
-
-#Lee and Yu transformation
-
-# if(LeeYu){
-# T <- T-1	
-# assign("T",T, envir=env)	
-# NT <- n*T
-# assign("NT",T, envir=env)	
-# # stop("Lee and Yu correction not yet implemented")
-# # if (effects=="spfe" | effects=="sptpfe"){
-# # IT <- Diagonal(T)
-# # IN <- Diagonal(n)
-# # JT <- matrix(1,T,T)
-# # Jbar <- 1/T * JT	
-# # Qmat <-IT - Jbar
-# # vec <- eigen(Qmat)
-# # Fmat <- vec$vectors[,vec$values==1L] 
-# # Ftm <- kronecker(t(Fmat), IN)
-# # }
-
-
-# # if (effects=="tpfe" | effects=="sptpfe"){
-# # IT <- Diagonal(T)
-# # IN <- Diagonal(n)
-# # JT <- matrix(1,T,T)
-# # Jbar <- 1/T * JT	
-# # Qmat <-IT - Jbar
-# # vec <- eigen(Qmat)
-# # Fmat <- matrix(vec$vectors[,vec$values==1L], T, T-1) 
-# # Ftm <- kronecker(t(Fmat), IN)
-# # iotan <- matrix(1,n,1)
-# # Jnbar <-1/n * iotan %*% t(iotan)
-# # Qmat1 <-  IN - Jnbar
-# # vec1 <- eigen(Qmat1)
-# # Fmat1 <- matrix(vec1$vectors[,vec1$values==1L], n, n-1) 
-# # FFmat<- kronecker(t(Fmat), t(Fmat1)) 
-# # }
-
-
-	
-# }
-
-
-
 
     if (!quiet) 
         cat(paste("\nSpatial fixed effects model\n", "Jacobian calculated using "))
 
 if(model == "lag"){
-    interval1 <- spdep:::jacobianSetup(method, env, con, pre_eig = con$pre_eig, trs = trs1, interval = interval1)
+    interval1 <- jacobianSetup(method, env, con, pre_eig = con$pre_eig, trs = trs1, interval = interval1)
     assign("interval1", interval1, envir = env)
-    # nm <- paste(method, "set_up", sep = "_")
-    # timings[[nm]] <- proc.time() - .ptime_start
-    # .ptime_start <- proc.time()	
 
 
-    RES<- splaglm(env = env, zero.policy = zero.policy, interval = interval1, Hess = Hess)
+    RES<- splaglm(env = env, zero.policy = zero.policy, interval = interval1, con = con, llprof = llprof, tol.solve= tol.solve, Hess = Hess, method = method, LeeYu = LeeYu, effects = effects)
     
     res.eff<-felag(env = env, beta = RES$coeff, sige = RES$s2, effects = effects, method = method, lambda = RES$lambda, legacy = legacy, zero.policy = zero.policy)    
 
@@ -382,15 +332,15 @@ if(model == "lag"){
 
 if(model == "sarar"){
 	
-    interval1 <- spdep:::jacobianSetup(method, env, con, pre_eig = con$pre_eig1, trs = trs1, interval = interval1, which = 1)
+    interval1 <- jacobianSetup(method, env, con, pre_eig = con$pre_eig1, trs = trs1, interval = interval1, which = 1)
     assign("interval1", interval1, envir = env)
-    interval2 <- spdep:::jacobianSetup(method, env, con, pre_eig = con$pre_eig2, trs = trs2, interval = interval2, which = 2)
+    interval2 <- jacobianSetup(method, env, con, pre_eig = con$pre_eig2, trs = trs2, interval = interval2, which = 2)
     assign("interval2", interval2, envir = env)
     # nm <- paste(method, "set_up", sep = "_")
     # timings[[nm]] <- proc.time() - .ptime_start
     # .ptime_start <- proc.time()
     
-      RES<- spsararlm(env = env, zero.policy = zero.policy, con = con, llprof = llprof, tol.solve = tol.solve, Hess = Hess, LeeYu = LeeYu)
+      RES<- spsararlm(env = env, zero.policy = zero.policy, con = con, llprof = llprof, tol.solve = tol.solve, Hess = Hess, LeeYu = LeeYu, effects = effects)
   
   
 res.eff<-felag(env = env, beta=RES$coeff, sige=RES$s2, effects = effects ,method = method, lambda = RES$lambda, legacy = legacy, zero.policy = zero.policy)    	
@@ -401,13 +351,13 @@ res.eff<-felag(env = env, beta=RES$coeff, sige=RES$s2, effects = effects ,method
 
 if (model=='error'){
 
-    interval1 <- spdep:::jacobianSetup(method, env, con, pre_eig = con$pre_eig, trs = trs1, interval = interval1)
+    interval1 <- jacobianSetup(method, env, con, pre_eig = con$pre_eig, trs = trs1, interval = interval1)
     assign("interval1", interval1, envir = env)
     # nm <- paste(method, "set_up", sep = "_")
     # timings[[nm]] <- proc.time() - .ptime_start
     # .ptime_start <- proc.time()	
 
-  RES<- sperrorlm(env = env, zero.policy = zero.policy, interval = interval1, Hess = Hess)	
+  RES <- sperrorlm(env = env, zero.policy = zero.policy, interval = interval1, Hess = Hess, LeeYu = LeeYu, effects = effects)	
     	res.eff<-feerror(env = env, beta=RES$coeff, sige=RES$s2, effects = effects ,method =method, rho=RES$rho, legacy = legacy)
     	
     }
@@ -425,6 +375,7 @@ if (model=='error'){
 	y.hat <- res.eff[[1]]$xhat
 	res <- as.numeric(res.eff[[1]]$res.e)
 	N.vars<-res.eff$N.vars
+
 
 
 	nam.rows <- dimnames(x)[[1]]
@@ -448,37 +399,63 @@ if (model == "sarar") spat.coef <- c(RES$lambda, RES$rho)
 
 Coeff<-c(spat.coef, RES$coeff)
 
+
 type <- paste("fixed effects", model)
 
+if (Hess){
 
-var<-RES$asyvar1
+	if(model == "lag" ){
+   		var<-matrix(0,(ncol(RES$asyvar1)+1),(ncol(RES$asyvar1)+1))
+		var[1,1]<-	RES$lambda.se
+		var[(2:ncol(var)),(2:ncol(var))]<-RES$asyvar1
+	}
+	
+	if(model == "error" ){
+	 	var<-matrix(0,(ncol(RES$asyvar1)+1),(ncol(RES$asyvar1)+1))
+    	var[1,1]<-	RES$rho.se
+    	var[(2:ncol(var)),(2:ncol(var))]<-RES$asyvar1
+	}
+	
+	if(model == "sarar"){
+		var <- matrix(0,(ncol(RES$asyvar1)+2),(ncol(RES$asyvar1)+2))
+	    var[1,1] <-	RES$lambda.se
+	    var[2,2] <-	RES$rho.se
+	    var[(3:ncol(var)),(3:ncol(var))] <- RES$asyvar1
+	}
+	
+} 
 
-if(model == "lag"){
-	var<-matrix(0,(ncol(RES$asyvar1)+1),(ncol(RES$asyvar1)+1))
+else{
+
+if(model == "lag" ){
+   var<-matrix(0,(ncol(RES$asyvar1)+1),(ncol(RES$asyvar1)+1))
    var[1,1]<-	RES$lambda.se
    var[(2:ncol(var)),(2:ncol(var))]<-RES$asyvar1
 	}
 
-if(model == "error"){
+if(model == "error" ){
 	var<-matrix(0,(ncol(RES$asyvar1)+1),(ncol(RES$asyvar1)+1))
    var[1,1]<-	RES$rho.se
    var[(2:ncol(var)),(2:ncol(var))]<-RES$asyvar1
 	}
 	
 if(model == "sarar"){
-	var<-matrix(0,(ncol(RES$asyvar1)+2),(ncol(RES$asyvar1)+2))
+   var<-matrix(0,(ncol(RES$asyvar1)+2),(ncol(RES$asyvar1)+2))
    var[1,1]<-	RES$lambda.se
    var[2,2]<-	RES$rho.se
    var[(3:ncol(var)),(3:ncol(var))]<-RES$asyvar1
+
 	}
+
+}
 
 
 spmod <- list(coefficients=Coeff, errcomp=NULL,
                 vcov = var ,spat.coef=spat.coef,
                 vcov.errcomp=NULL,
                 residuals=res, fitted.values=y.hat,
-                sigma2=RES$s2, type=type, model=model.data,
-                call=cl, logLik=RES$ll, method=method, effects=effects, 
+                sigma2=RES$s2, type=type, model = model.data,
+                call=cl, logLik=RES$ll, method = method, effects=effects, 
                 res.eff=res.eff)
                 
 if (!is.null(na.act)) 

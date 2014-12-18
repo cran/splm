@@ -12,6 +12,7 @@ function(object,...){
             ## make coefficients' table if vcov exist
             if (!is.null(object$vcov)) {
                 std.err <- sqrt(diag(object$vcov))
+               
 #if(object$type == "fixed effects sarar")  std.err <- c(object$se.spat, sqrt(diag(object$vcov)))
                  #vcov(object) doesn't work
                 b <- coefficients(object)

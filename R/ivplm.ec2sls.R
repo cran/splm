@@ -1,53 +1,66 @@
-ivplm.ec2sls<-function(Y,X,H,endog, ind, tind, lag=FALSE, listw){
 
-  N<-length(unique(ind))
-  T<-length(unique(tind))
-  indt<-rep(seq(1,N), T)
-  tindt<-rep(seq(1,T), each = N)
-  tord<-order(indt,tindt)
+# # # # # ec 2sls
+
+ivplm.ec2sls <- function(Y,X,H = NULL, endog = NULL, lag=FALSE, listw, lag.instruments, T = T, N = N, NT = NT ){
+
+indic <- rep(1:N,T)
+listwnn <- listw[1:N, 1:N]
 
 ##transform y	
-transy<-panel.transformations(Y,ind, type= "both")
+transy<-panel.transformations(Y,indic, type= "both")
 ybetween<-transy[[2]]
 ywithin<-transy[[1]]
-ybetweennt<- rep(ybetween, each=length(unique(tind)))	
+ybetweennt<- rep(ybetween, T)	
 
 ##transform X	
-transx<-panel.transformations(X,ind, type= "both")
+transx<-panel.transformations(X,indic, type= "both")
 Xbetween<-transx[[2]]
 Xwithin<-transx[[1]]
 colnames(Xwithin)<-colnames(X)
 colnames(Xbetween)<-colnames(X)
-Xbetweennt<-matrix(,nrow(Xwithin), ncol(Xbetween))
-for (i in 1:ncol(Xbetween)) Xbetweennt[,i]<-rep(Xbetween[,i],each= length(unique(tind)))
+Xbetweennt<-matrix(,NT, ncol(Xbetween))
+for (i in 1:ncol(Xbetween)) Xbetweennt[,i]<-rep(Xbetween[,i], T)
 del<- which(diag(var(Xwithin))==0)
 colnames(Xbetweennt)<-colnames(X)
 
 if(!lag){
-
 ##transform the instruments H
-transH<-panel.transformations(H,ind, type= "both")
+transH<-panel.transformations(H,indic, type= "both")
 Hbetween<-transH[[2]]
 Hwithin<-transH[[1]]
-Hbetweennt<-matrix(,nrow(Hwithin), ncol(Hbetween))
-for (i in 1:ncol(Hbetween)) Hbetweennt[,i]<-rep(Hbetween[,i],each= length(unique(tind)))
+
+if(lag.instruments ) {
+	
+	L.Hwithin <- listw %*% Hwithin
+	L2.Hwithin <- listw %*% L.Hwithin
+	Hwithin <- cbind(Hwithin, as.matrix(L.Hwithin), as.matrix(L2.Hwithin))
+
+	L.Hbetween <- listwnn %*% Hbetween
+	L2.Hbetween <- listwnn %*% L.Hbetween
+	Hbetween <- cbind(Hbetween, as.matrix(L.Hbetween), as.matrix(L2.Hbetween))
+	
+}
+
+Hbetweennt<-matrix(,NT, ncol(Hbetween))
+for (i in 1:ncol(Hbetween)) Hbetweennt[,i]<-rep(Hbetween[,i],T)
+
 
 ##transform the endogenous variables endog
-transendog<-panel.transformations(endog,ind, type= "both")
+transendog<-panel.transformations(endog,indic, type= "both")
 endogbetween<-transendog[[2]]
 endogwithin<-transendog[[1]]
-endogbetweennt<-matrix(,length(ind), ncol(endogbetween))
-for (i in 1:ncol(endogbetween)) endogbetweennt[,i]<-rep(endogbetween[,i],each= length(unique(tind)))
+endogbetweennt<-matrix(,NT, ncol(endogbetween))
+for (i in 1:ncol(endogbetween)) endogbetweennt[,i]<-rep(endogbetween[,i],T)
 colnames(endogbetweennt)<-colnames(endog)
 colnames(endogwithin)<-colnames(endog)
 
 #W2SLS
 resw<-spgm.tsls(as.matrix(ywithin), endogwithin, Xwithin, Hwithin )
 
-sigma2v1<-resw$sse / ((length(unique(ind)) * (length(unique(tind)) -1)) - ncol(as.matrix(Xwithin[,-del])) - ncol(endogwithin)) 
+sigma2v1<-resw$sse / ((N * (T -1)) - ncol(as.matrix(Xwithin[,-del])) - ncol(endogwithin)) 
 
 #B2SLS
-resb<-spgm.tsls(sqrt(length(unique(tind)))*as.matrix(ybetween), sqrt(length(unique(tind)))*as.matrix(endogbetween), sqrt(length(unique(tind)))*Xbetween, sqrt(length(unique(tind)))*as.matrix(Hbetween) )
+resb<-spgm.tsls(sqrt(T)*as.matrix(ybetween), sqrt(T)*as.matrix(endogbetween), sqrt(T)*Xbetween, sqrt(T)*as.matrix(Hbetween) )
 
 sigma21<-resb$sse /  resb$df
 
@@ -55,9 +68,7 @@ ystar<-ywithin/sqrt(sigma2v1) + ybetweennt/sqrt(sigma21)
 xstar<-Xwithin/sqrt(sigma2v1) + Xbetweennt/sqrt(sigma21)
 endogstar<-endogwithin/sqrt(sigma2v1) + endogbetweennt/sqrt(sigma21)
 
-
-Hins<-cbind(Xwithin,Xbetweennt,Hwithin,Hbetweennt)
-
+Hins <- cbind(Xwithin,Xbetweennt,Hwithin,Hbetweennt)
 res<-spgm.tsls(ystar, endogstar, xstar, Hinst = Hins, instr = TRUE )
 res$sigma1<-sigma21
 res$sigmav<-sigma2v1
@@ -66,126 +77,118 @@ res$sigmav<-sigma2v1
 
 
 else{
-     wy<-lag.listwpanel(listw, Y, tind)
-     wy<-wy[tord]
+	
+     wy <- listw %*%  Y
 
-	  wywithin <- lag.listwpanel(listw, ywithin, tind)
-	  wywithin <-wywithin[tord]
+	  wywithin <- listw %*% ywithin
      wywithin <- as.matrix(wywithin)
      colnames(wywithin)<-"lambda"
-  	  wybetween <- lag.listw(listw, as.matrix(ybetween))
+     
+  	  wybetween <- listwnn %*% as.matrix(ybetween)
      colnames(wybetween) <- ("lambda")
+           
+           WXwithin <- as.matrix(listw %*% Xwithin)
+           WWXwithin <- as.matrix(listw %*%  WXwithin)
 
-
-        WXwithin <- matrix(nrow = nrow(Xwithin), ncol = ncol(Xwithin))
-        WWXwithin <- matrix(nrow = nrow(Xwithin), ncol = ncol(Xwithin))
-
-for (i in 1:ncol(Xwithin)) {
-           wx<- lag.listwpanel(listw, Xwithin[,i], tind)
-           wwx<- lag.listwpanel(listw, wx, tind)
-
-            if (any(is.na(wx))) 
-                stop("NAs in lagged independent variable")
-            WXwithin[, i] <- wx
-            WWXwithin[, i] <- wwx
-        }
-
-WXwithin <- WXwithin[tord,] 
-WWXwithin <- WWXwithin[tord,]
-
-
-
-        WXbetween <- matrix(nrow = nrow(Xbetween), ncol = ncol(Xbetween))
-        WWXbetween <- matrix(nrow = nrow(Xbetween), ncol = ncol(WXbetween))
-for (i in 1:ncol(Xbetween)) {
-            wx <- lag.listw(listw,Xbetween[,i])
-            wwx <- lag.listw(listw,wx)
-            if (any(is.na(wx))) 
-                stop("NAs in lagged independent variable")
-            WXbetween[, i] <- wx
-            WWXbetween[, i] <- wwx
-        }
-
+            WXbetween <- as.matrix(listwnn %*% Xbetween)
+            WWXbetween <- as.matrix(listwnn %*% WXbetween)
 
 if(is.null(endog)){
 
-        
 Hwithin<-cbind(WXwithin, WWXwithin)        
-
 resw<-spgm.tsls(ywithin, wywithin, Xwithin, Hwithin)
 
-sigma2v1<- resw$sse / ((length(unique(ind)) * (length(unique(tind)) -1)) - ncol(as.matrix(Xwithin[,-del])) - 1) 
+sigma2v1<- resw$sse / ((N * (T -1)) - ncol(as.matrix(Xwithin[,-del])) - 1) 
 
         
 Hbetween<-cbind(WXbetween, WWXbetween)        
 
-resb<-spgm.tsls(sqrt(length(unique(tind)))*as.matrix(ybetween), sqrt(length(unique(tind)))*as.matrix(wybetween), sqrt(length(unique(tind)))*Xbetween, sqrt(length(unique(tind)))*as.matrix(Hbetween) )
+resb<-spgm.tsls(sqrt(T)*as.matrix(ybetween), sqrt(T)*as.matrix(wybetween), sqrt(T)*Xbetween, sqrt(T)*as.matrix(Hbetween) )
 sigma21<-resb$sse /  resb$df
-
 
 ystar<-ywithin/sqrt(sigma2v1) + ybetweennt/sqrt(sigma21)
 xstar<-Xwithin/sqrt(sigma2v1) + Xbetweennt/sqrt(sigma21)
-endogstar<-wywithin/sqrt(sigma2v1) + rep(wybetween, each=length(unique(tind)))/sqrt(sigma21)
+endogstar<-wywithin/sqrt(sigma2v1) + rep(as.matrix(wybetween), T)/sqrt(as.numeric(sigma21))
 endogstar<-as.matrix(endogstar)
 colnames(endogstar)<-"lambda"
 
 
-Hbetweennt<-matrix(,length(ind), ncol(Hbetween))
-for (i in 1:ncol(Hbetween)) Hbetweennt[,i]<-rep(Hbetween[,i],each= length(unique(tind)))
+Hbetweennt<-matrix(,NT, ncol(Hbetween))
+for (i in 1:ncol(Hbetween)) Hbetweennt[,i]<-rep(Hbetween[,i],T)
 
-A<-cbind(1, Xwithin, Xbetweennt, Hwithin, Hbetweennt)
-
+A <- cbind(1, Xwithin, Xbetweennt, Hwithin, Hbetweennt)
 
 res <- spgm.tsls(ystar, endogstar, xstar, Hinst = A, instr = TRUE)
 
 res$sigma1 <- sigma21
 res$sigmav <- sigma2v1
-
-
-
 }	
 
 else{
 
-
-transH<-panel.transformations(H,ind, type= "both")
-Hbetween<-transH[[2]]
+transH <- panel.transformations(H,indic, type= "both")
+Hbetween <- transH[[2]]
 Hwithin<-transH[[1]]
-Hbetweennt<-matrix(,length(ind), ncol(Hbetween))
-for (i in 1:ncol(Hbetween)) Hbetweennt[,i]<-rep(Hbetween[,i],each= length(unique(tind)))
+
+if(lag.instruments ) {
+	
+	L.Hwithin <- as.matrix(listw %*% Hwithin)
+	L2.Hwithin <- as.matrix(listw %*% L.Hwithin)
+	Hwithin <- cbind(Hwithin, L.Hwithin, L2.Hwithin)
+
+	L.Hbetween <- as.matrix(listwnn %*% Hbetween)
+	L2.Hbetween <- as.matrix(listwnn %*% L.Hbetween)
+	Hbetween <- cbind(Hbetween, L.Hbetween, L2.Hbetween)
+	
+}
+
+Hbetweennt<-matrix(,NT, ncol(Hbetween))
+for (i in 1:ncol(Hbetween)) Hbetweennt[,i]<-rep(Hbetween[,i], T)
 
 Hwithin<-cbind(Hwithin, WXwithin, WWXwithin)
 
 
-transendog<-panel.transformations(endog,ind, type= "both")
+transendog<-panel.transformations(endog,indic, type= "both")
 endogbetween<-transendog[[2]]
 endogwithin<-transendog[[1]]
-endogbetweennt<-matrix(,length(ind), ncol(endogbetween))
-for (i in 1:ncol(endogbetween)) endogbetweennt[,i]<-rep(endogbetween[,i],each= length(unique(tind)))
+
+# endogbetweennt<-matrix(,NT, ncol(endogbetween))
+# for (i in 1:ncol(endogbetween)) endogbetweennt[,i]<-rep(endogbetween[,i], T)
 
 endogwithin<-cbind(endogwithin, wywithin)
+colnames(endogwithin) <- c(colnames(endog), "lambda")
     
 resw<-spgm.tsls(as.matrix(ywithin), as.matrix(endogwithin), Xwithin, Hwithin )
-sigma2v1<-resw$sse / ((length(unique(ind)) * (length(unique(tind)) -1)) - ncol(as.matrix(Xwithin[,-del])) - ncol(endogwithin)) 
+sigma2v1<-resw$sse / ((N * (T -1)) - ncol(as.matrix(Xwithin[,-del])) - ncol(endogwithin)) 
 
 
-Hbetween<-cbind(Hbetween, WXbetween, WWXbetween)
-endogbetween<-cbind(endogbetween, wybetween)
+Hbetween <- cbind(Hbetween, WXbetween, WWXbetween)
+endogbetween <- cbind(endogbetween, as.matrix(wybetween))
+colnames(endogbetween) <- c(colnames(endog), "lambda")
+endogbetweennt<-matrix(,NT, ncol(endogbetween))
+for (i in 1:ncol(endogbetween)) endogbetweennt[,i]<-rep(endogbetween[,i], T)
 
-resb<-spgm.tsls(sqrt(length(unique(tind)))*as.matrix(ybetween), sqrt(length(unique(tind)))*as.matrix(endogbetween), sqrt(length(unique(tind)))*Xbetween, sqrt(length(unique(tind)))*as.matrix(Hbetween))
+
+resb<-spgm.tsls(sqrt(T)*as.matrix(ybetween),  sqrt(T)*as.matrix(endogbetween), sqrt(T)*Xbetween, sqrt(T)*as.matrix(Hbetween))
 sigma21<-resb$sse / resb$df
+
 
 ystar<-ywithin/sqrt(sigma2v1) + ybetweennt/sqrt(sigma21)
 xstar<-Xwithin/sqrt(sigma2v1) + Xbetweennt/sqrt(sigma21)
-endogstar<-endogwithin/sqrt(sigma2v1) + rep(endogbetween, each=length(unique(tind)))/sqrt(sigma21)
+# print(dim(endogwithin))
+# print(dim(as.matrix(endogbetween)))
+endogstar<-endogwithin/sqrt(sigma2v1) + as.matrix(endogbetweennt)/sqrt(as.numeric(sigma21))
 
+# print(sigma2v1)
+# print(sigma21)
 
-Hbetweennt<-matrix(,length(ind), ncol(Hbetween))
-for (i in 1:ncol(Hbetween)) Hbetweennt[,i]<-rep(Hbetween[,i],each= length(unique(tind)))
+Hbetweennt<-matrix(,NT, ncol(Hbetween))
+for (i in 1:ncol(Hbetween)) Hbetweennt[,i]<-rep(Hbetween[,i], T)
 
 A<-cbind(1,Xwithin[,-del],Xbetweennt[,-del], Hwithin, Hbetweennt)
 
 res <- spgm.tsls(ystar, endogstar, xstar, Hinst = A, instr = TRUE)
+# print(res$coefficients)
 
 res$sigma1<- sigma21
 res$sigma1<- sigma2v1
@@ -198,3 +201,6 @@ res$sigma1<- sigma2v1
 res 
 
 }
+ 
+
+

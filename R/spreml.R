@@ -8,19 +8,19 @@ function (formula, data, index = NULL, w, w2=w, lag = FALSE,
 {
     ## mod from spreml5.R to include experimental versions of functions in /optim
 
-    require(maxLik)
+    #require(maxLik)
 
     trace <- as.numeric(!quiet)
     if (pvar)
         print("<implement pvar>")
     if (!is.null(index)) {
-        require(plm)
+        #require(plm)
         data <- plm.data(data, index)
     }
     index <- data[, 1]
     tindex <- data[, 2]
     cl <- match.call()
-    require(nlme)
+    #require(nlme)
     if (!is.matrix(w)) {
         if ("listw" %in% class(w)) {
  #           require(spdep)
@@ -32,13 +32,16 @@ function (formula, data, index = NULL, w, w2=w, lag = FALSE,
     }
     if (dim(data)[[1]] != length(index))
         stop("Non conformable arguments")
-    X <- model.matrix(formula, data = data)
-    y <- model.response(model.frame(formula, data = data))
+#    X <- model.matrix(formula, data = data)
+#    y <- model.response(model.frame(formula, data = data))
+    pmod <- plm(formula, data, model="pooling")
+    X <- model.matrix(pmod)
+    y <- pmodel.response(pmod)
     names(index) <- row.names(data)
     ind <- index[which(names(index) %in% row.names(X))]
     tind <- tindex[which(names(index) %in% row.names(X))]
     oo <- order(tind, ind)
-    X <- X[oo, ]
+    X <- X[oo, , drop=FALSE]
     y <- y[oo]
     ind <- ind[oo]
     tind <- tind[oo]

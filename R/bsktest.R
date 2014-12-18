@@ -253,7 +253,7 @@ yybis<-function(q){
 function(formula, data, index=NULL, listw, standardize, ...){
 
   if(!is.null(index)) { ####can be deleted when using the wrapper
-    require(plm)
+    #require(plm)
     data <- plm.data(data, index)
     }
 
@@ -347,7 +347,7 @@ SLM1<-((G+1)- Ed1)/sqrt(Vd1)
 function(formula, data, index=NULL, listw, standardize, ...){
 
   if(!is.null(index)) { 
-    require(plm)
+    #require(plm)
     data <- plm.data(data, index)
     }
 
@@ -440,10 +440,10 @@ fun2<-function(Q) unlist(tapply(Q,inde,lag))
 `LMHtest` <-
 function(formula, data, index=NULL, listw, ...){
     ## depends on listw2dgCMatrix.R
-  require(ibdreg) # for mixed chisquare distribution
-
+  #require(ibdreg) # for mixed chisquare distribution
+  # now imported
   if(!is.null(index)) { ####can be deleted when using the wrapper
-    require(plm)
+    #require(plm)
     data <- plm.data(data, index)
     }
 
@@ -540,7 +540,7 @@ ml <- spfeml(formula=formula, data=data, index=index, listw=listw, model="error"
     ## spml(formula, data=data, index=index, listw, errors = "BSK", effects = "fixed", lag = FALSE, spatial.error = TRUE)
 
 	 if(!is.null(index)) {
-    require(plm)
+    #require(plm)
     data <- plm.data(data, index)
     }
 
@@ -648,7 +648,7 @@ clmltest <- function (formula, data, index = NULL, listw)
    # ml <- spreml(formula, data = data, w = listw2mat(listw),
    #     errors = "re")
     if (!is.null(index)) {
-        require(plm)
+        #require(plm)
         data <- plm.data(data, index)
     }
     index <- data[, 1]

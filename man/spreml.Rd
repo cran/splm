@@ -78,10 +78,10 @@ spreml(formula, data, index = NULL, w, w2=w, lag = FALSE,
   \item{errors}{the value of the \code{errors} argument}
 }
 \references{
-  Millo, G. (2013)
+  Millo, G. (2014)
   Maximum likelihood estimation of spatially and serially correlated
   panels with random effects. \emph{Computational Statistics and Data
-  Analysis}, \bold{forthcoming}.
+  Analysis}, \bold{71}, 914--933.
 }
 
 \author{Giovanni Millo}
@@ -89,7 +89,7 @@ spreml(formula, data, index = NULL, w, w2=w, lag = FALSE,
 \seealso{\code{spml}}
 
 \examples{
-data(Produc, package = "Ecdat")
+data(Produc, package = "plm")
 data(usaww)
 fm <- log(gsp) ~ log(pcap) + log(pc) + log(emp) + unemp
 ## random effects panel with spatial lag and serial error correlation

@@ -1,7 +1,31 @@
-Changes in Version 1.1.00
+Changes in Version 1.3-7
+ o Added slag() method for spatially lagging a vector or a pseries
+
+Changes in Version 1.3-6
+ o Implemented plm data infrastructure in spreml; now accepts any panel function in formula, e.g. diff() or Within()
+
+Changes in Version 1.3-5
+ o Fixed usage of w viz. w2 in spreml estimators
+
+Changes in Version 1.3-3
+ o Implemented new personal information with Authors@R, according to Hornik et al., R Journal 2012(1). Scaled dependence back on R 2.12.0 (because of Authors@R infrastructure) from R 3.0.1. Eliminated calls to nonexported objects from 'spdep' by: 1) eliminating "dead" if condition in spfeml() (spdep:::.spdepOptions); 2) adding local (nonexported) version of the two nonexported functions spdep:::can.be.simmed and spdep:::jacobianSetup (in script nonexportedSpdepFuns.R). Removed write.effects().
+
+Changes in Version 1.3-2
+ o Reduced dependencies through selective imports, cleaned up the code from 'require' calls. Now depends only on 'spdep', imports (or importsFrom)  plm, maxLik, MASS, bdsmatrix, ibdreg, nlme, Matrix, spam.
+
+Changes in Version 1.3-0
+ o All changes documented in: Piras, G. “Impact estimates for static panel data models in R”. url: http://rri.wvu.edu/wp-content/uploads/2012/11/Piras_ImpactEstimatesForStaticSpatial2013-05.pdf fixed thanks to the email from Viton
+
+Changes in Version 1.2-0
+ o All changes documented in: Piras, G. “Impact estimates for static panel data models in R”. url: http://rri.wvu.edu/wp-content/uploads/2012/11/Piras_ImpactEstimatesForStaticSpatial2013-05.pdf
+
+ o Rewrote a new framework to deal with GM estimation using exclusively sparse Matrices. This new framework has multiple improvements in terms both of timing and improvements with respect to the previous version. Most of the changes are reported in a file SPGM - structure.doc available from G. Piras. I am also planning to write a paper showing most of the new functionality. Basically, most of the options available from sphet have been included also in spgm. 
+
+
+Changes in Version 1.1-0
  o revised all random effects estimators as per paper submitted to CSDA. Sparse matrix methods, flexible optimizers, SAREM2SRRE and SEM2SRRE models have been added. Datasets and weights for Rice Farming and Italian Insurance examples have been added.
 
-Changes in Version 1.0-05
+Changes in Version 1.0-5
  o fixed some bugs in spfeml and update the relative function to changes in spdep (a few differences arises with the paper on JSS such as: the residuals of the sarar model and the s.e. of the spatial coefficients) 
 
 

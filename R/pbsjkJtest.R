@@ -10,7 +10,7 @@ function(formula, data, w, index=NULL, ...) {
 
   ## reorder data if needed
   if(!is.null(index)) {
-    require(plm)
+    #require(plm)
     data <- plm.data(data, index)
     }
 
@@ -28,7 +28,7 @@ function(formula, data, w, index=NULL, ...) {
   msq<-function(x) x%*%x
 
   ## make W matrix from listw object, if needed
-  if("listw" %in% class(w)) if(require(spdep)) w<-listw2mat(w)
+  if("listw" %in% class(w)) w <- listw2mat(w) #if(require(spdep)) w<-listw2mat(w)
 
   ## retrieve restricted model's (OLS) residuals (ordered!)
   X<-model.matrix(formula, data)

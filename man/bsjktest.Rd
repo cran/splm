@@ -32,7 +32,7 @@ Testing panel data regression models with spatial and serial error correlation.
 \seealso{\code{bsktest}}
 
 \examples{
-data(Produc, package="Ecdat")
+data(Produc, package="plm")
 data(usaww)
 fm <- log(gsp)~log(pcap)+log(pc)+log(emp)+unemp
 bsjktest(fm, data=Produc, listw = usaww, test="C.1")

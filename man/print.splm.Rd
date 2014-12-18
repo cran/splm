@@ -33,7 +33,7 @@ depending on the estimated model.
 \author{Giovanni Millo, Gianfranco Piras}
 
 \examples{
-data(Produc, package = "Ecdat") 
+data(Produc, package = "plm") 
 data(usaww)
 spremod<-spml(log(gsp)~log(pcap)+log(pc)+log(emp)+unemp, data=Produc,
 listw = mat2listw(usaww), model="random", lag=TRUE, spatial.error="none")

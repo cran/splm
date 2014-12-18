@@ -1,9 +1,15 @@
-ivplm.b2sls<-function(Y,X,H,endog, ind, tind, lag=FALSE, listw){
+###### between 2sls
+
+ivplm.b2sls <- function(Y,X,H = NULL, endog = NULL, lag=FALSE, listw, lag.instruments, T = T, N = N, NT = NT, twow = FALSE, listw2 = NULL){
+
+indic <- rep(1:N,T)
 
 ##transform y	
-ybetween<-panel.transformations(Y,ind, type= "between")
+ybetween<-panel.transformations(Y,indic, type= "between")
+ndim <- length(ybetween)
+listwnn <- listw[1:ndim, 1:ndim]
 
-Xbetween<-panel.transformations(X,ind, type= "between")
+Xbetween<-panel.transformations(X,indic, type= "between")
 colnames(Xbetween)<-colnames(X)
 
 if (colnames(Xbetween)[1] == "(Intercept)") Xbetween<-Xbetween[,-1]
@@ -14,84 +20,116 @@ else Xbetween<-Xbetween[,-delb]
 if (colnames(X)[1] == "(Intercept)") Xbetween<-cbind(1,Xbetween)
 colnames(Xbetween)[1]<-"(Intercept)"
 
-
-
 if(!lag){
-##transform the instruments H
-	Hbetween<-panel.transformations(H,ind, type= "between")
-	endogbetween<-panel.transformations(endog,ind, type= "between")
-   colnames(endogbetween)<-colnames(endog)
-##tsls
-res<-spgm.tsls(sqrt(length(unique(tind)))*as.matrix(ybetween), sqrt(length(unique(tind)))*endogbetween, sqrt(length(unique(tind)))*Xbetween, sqrt(length(unique(tind)))*as.matrix(Hbetween) )
-#print(res$coefficients)
+##transform the instruments H and the endogenous variable
+	Hbetween<-panel.transformations(H,indic, type= "between")
+
+	if(lag.instruments ) {
+	
+	L.Hbetween <- listwnn %*% Hbetween
+	L2.Hbetween <- listwnn %*% L.Hbetween
+	Hbetween <- cbind(Hbetween, as.matrix(L.Hbetween), as.matrix(L2.Hbetween))
 }
 
+	endogbetween<-panel.transformations(endog,indic, type= "between")
+   colnames(endogbetween)<-colnames(endog)
+
+res <-spgm.tsls(sqrt(T)*as.matrix(ybetween), sqrt(T)*endogbetween, sqrt(T)*Xbetween, sqrt(T)*as.matrix(Hbetween) )
+res$Hbetween <- Hbetween
+}
 
 else{
 	
-	wybetween <- lag.listw(listw, as.matrix(ybetween))
-   colnames(wybetween) <- ("lambda")
-
+	wybetween <- listwnn %*% as.matrix(ybetween)
+	wybetween <- as.matrix(wybetween)
+    colnames(wybetween) <- ("lambda")
 	
 	if(is.null(endog)){
-
-        WXbetween <- matrix(nrow = nrow(Xbetween), ncol = ncol(Xbetween))
-        WWXbetween <- matrix(nrow = nrow(Xbetween), ncol = ncol(WXbetween))
-for (i in 1:ncol(Xbetween)) {
-            wx <- lag.listw(listw,Xbetween[,i])
-            wwx <- lag.listw(listw,wx)
-            if (any(is.na(wx))) 
-                stop("NAs in lagged independent variable")
-            WXbetween[, i] <- wx
-            WWXbetween[, i] <- wwx
-        }
+		
+		            if(twow){
+		            	
+     listw2nn <- listw2[1:ndim, 1:ndim]       	
+	WXbetween <- listwnn %*%  Xbetween
+    WWXbetween <- listwnn %*% WXbetween
+	W2Xbetween <- listw2nn %*%  Xbetween
+    W2WXbetween <- listw2nn %*% WXbetween
+    W2WWXbetween <- listw2nn %*% WWXbetween
+            	
+ 	Hbetween <-cbind(as.matrix(WXbetween), as.matrix(WWXbetween), as.matrix(W2Xbetween), as.matrix(W2WXbetween), as.matrix(W2WWXbetween))            	
+    
+            }
+else{            
+	
+            WXbetween <- as.matrix(listwnn %*% Xbetween)
+            WWXbetween <- as.matrix(listwnn %*% WXbetween)
         
 Hbetween<-cbind(WXbetween, WWXbetween)        
+ 	
+ 	}
 
-res<-spgm.tsls(sqrt(length(unique(tind)))*as.matrix(ybetween), sqrt(length(unique(tind)))*as.matrix(wybetween), sqrt(length(unique(tind)))*Xbetween, sqrt(length(unique(tind)))*as.matrix(Hbetween) )
 
-
+res<-spgm.tsls(sqrt(T)*as.matrix(ybetween), sqrt(T)*as.matrix(wybetween), sqrt(T)*Xbetween, sqrt(T)*as.matrix(Hbetween) )
+res$Hbetween <- Hbetween
 		}
 		
 else{
 	
-        WXbetween <- matrix(nrow = nrow(Xbetween), ncol = ncol(Xbetween))
-        WWXbetween <- matrix(nrow = nrow(Xbetween), ncol = ncol(WXbetween))
-for (i in 1:ncol(Xbetween)) {
-            wx <- lag.listw(listw,Xbetween[,i])
-            wwx <- lag.listw(listw,wx)
-            if (any(is.na(wx))) 
-                stop("NAs in lagged independent variable")
-            WXbetween[, i] <- wx
-            WWXbetween[, i] <- wwx
-        }
-        
-	##transform the instruments H
-	Hbetween<-panel.transformations(H,ind, type= "between") 
+		Hbetween <- panel.transformations(H,indic, type= "between") 
+			
+if(lag.instruments ) {
+	
+	L.Hbetween <- listwnn %*% Hbetween
+	L2.Hbetween <- listwnn %*% L.Hbetween
 
-Hbetween<-cbind(Hbetween, WXbetween, WWXbetween)
+	if(twow){
+		listw2nn <- listw2[1:ndim, 1:ndim] 
+		w2.Hbetween <- as.matrix(listw2nn %*% Hbetween)
+		w2w.Hbetween <- as.matrix(listw2nn %*% L.Hbetween)
+		w2ww.Hbetween <- as.matrix(listw2nn %*% L2.Hbetween)
+	Hbetween <- cbind(Hbetween, as.matrix(L.Hbetween), as.matrix(L2.Hbetween), w2.Hbetween, w2w.Hbetween, w2ww.Hbetween)		
+	
+	}
+	
+	else 		Hbetween <- cbind(Hbetween, as.matrix(L.Hbetween), as.matrix(L2.Hbetween))
+}
 
 
-##transform the endogenous variables endog
-	endogbetween<-panel.transformations(endog,ind, type= "between")
+            if(twow){
+    listw2nn <- listw2[1:ndim, 1:ndim]        	
+	WXbetween <- listwnn %*%  Xbetween
+    WWXbetween <- listwnn %*% WXbetween
+	W2Xbetween <- listw2nn %*%  Xbetween
+    W2WXbetween <- listw2nn %*% WXbetween
+    W2WWXbetween <- listw2nn %*% WWXbetween
+            	
+ 	Hbetween <-cbind(Hbetween, as.matrix(WXbetween), as.matrix(WWXbetween), as.matrix(W2Xbetween), as.matrix(W2WXbetween), as.matrix(W2WWXbetween))            	
+    
+            }
+else{            
+	
+	WXbetween <- listwnn %*%  Xbetween
+    WWXbetween <- listwnn %*% WXbetween
+ 	Hbetween <-cbind(Hbetween, as.matrix(WXbetween), as.matrix(WWXbetween))
+ 	
+ 	}
 
+
+	##transform the endogenous variables endog
+	endogbetween<-panel.transformations(endog,indic, type= "between")
 	endogbetween<-cbind(endogbetween, wybetween)
 
-if(is.null(colnames(endog))) colnames(endogbetween)<-c(rep("endog", (ncol(endogbetween)-1)), "lambda")
-else 	colnames(endogbetween)<-c(colnames(endog), "lambda")
+colnames(endogbetween)<-c(colnames(endog), "lambda")
 
 
 	
-res<-spgm.tsls(sqrt(length(unique(tind)))*as.matrix(ybetween), sqrt(length(unique(tind)))*endogbetween, sqrt(length(unique(tind)))*Xbetween, sqrt(length(unique(tind)))*as.matrix(Hbetween) )
-
-	
-
-	}		
-	
+res<-spgm.tsls(sqrt(T)*as.matrix(ybetween), sqrt(T)*endogbetween, sqrt(T)*Xbetween, sqrt(T)*as.matrix(Hbetween) )
+res$Hbetween <- Hbetween
+	}			
 	}	
 
 res
 }
+
 
 
 

@@ -81,7 +81,7 @@ URL http://www.jstatsoft.org/v47/i01/.
 \seealso{\code{spgm}}
 
 \examples{
-data(Produc, package = "Ecdat")
+data(Produc, package = "plm")
 data(usaww)
 fm <- log(gsp) ~ log(pcap) + log(pc) + log(emp) + unemp
 ## the two standard specifications (SEM and SAR) one with FE
@@ -94,6 +94,8 @@ summary(fespaterr)
 respatlag <- spml(fm, data = Produc, listw = mat2listw(usaww),
                    model="random", spatial.error="none", lag=TRUE)
 summary(respatlag)
+impac1 <- impacts(respatlag, listw = mat2listw(usaww, style = "W"), time = 17)
+summary(impac1, zstats=TRUE, short=TRUE)
 }
 
 \keyword{spatial}

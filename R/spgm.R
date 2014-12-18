@@ -1,43 +1,58 @@
 `spgm` <-
-function(formula, data=list(), index=NULL, listw,
-         model=c("within","random"), lag=FALSE, spatial.error=FALSE,
-         moments = c("initial", "weights", "fullweights"), endog = NULL, instruments= NULL, verbose = FALSE, method = c("w2sls", "b2sls", "g2sls", "ec2sls"), control = list()){
+function(formula, data=list(), index=NULL, listw =NULL, listw2 = NULL,
+         model=c("within","random"), lag = FALSE, spatial.error=TRUE,
+         moments = c("initial", "weights", "fullweights"), endog = NULL, instruments= NULL, lag.instruments = FALSE, verbose = FALSE, method = c("w2sls", "b2sls", "g2sls", "ec2sls"), control = list(), optim.method = "nlminb", pars = NULL){
 
 ## translation for uniformity
 effects <- switch(match.arg(model), within="fixed", random="random")
 
-# source('tss.R')
-# source('sumres.R')
-# source('utilities_GM.R')
-# source('listw2dgCMatrix.R')
-# source('summary.splm.R')
-# source('print.splm.R')
-# source('print.summary.splm.R')
-#
-#
-#
-	# source("ivsplm.R")
-	# source("ivplm.w2sls.R")
-	# source("ivplm.b2sls.R")	
-	# source("ivplm.g2sls.R")
-	# source("ivplm.ec2sls.R")
-#	source("sperrorgm2.R")		
-##	source("spsarargm3.R")		##working with the Mutl and Pfaff. procedure
-#	source("spsarargm4.R")	#works fine with a modified procedure
-#source("spsarargm5.R")	
+if(is.null(listw) && is.null(endog) && !spatial.error) stop("An endogenous variable should be specified")
+
+if(!is.null(listw)){
+	
+if(!inherits(listw,c("listw", "Matrix", "matrix"))) stop("listw format unknown")
+if(inherits(listw,"listw"))  listw <- listw2dgCMatrix(listw)	
+if(inherits(listw,"matrix"))  listw <- Matrix(listw)
+
+}
+
+if(!is.null(listw2) && !lag && spatial.error) stop("listw2 can be specified only with sarar")
+
+if(lag && spatial.error){
+
+if(is.null(listw2)) {
+	twow <- FALSE		
+	listw2 <- listw
+
+	}
+else{
+
+if(!inherits(listw2,c("listw", "Matrix", "matrix"))) stop("listw2 format unknown")
+if(inherits(listw2,"listw"))  listw2<-listw2dgCMatrix(listw2)	
+if(inherits(listw2,"matrix"))  listw2<-Matrix(listw2)
+
+twow <- TRUE
+	
+}	
+
+}
 
 
-if(model == "within" && attr(terms(formula), "intercept") == 0 ) formula <- as.formula(paste(attr(terms(formula),"variables")[1+attr(terms(formula),"response")], paste(attr(terms(formula),"term.labels"), collapse="+"), sep="~"))
+
+
 
 	
+if(model == "within" && attr(terms(formula), "intercept") == 0 ) formula <- as.formula(paste(attr(terms(formula),"variables")[1+attr(terms(formula),"response")], paste(attr(terms(formula),"term.labels"), collapse="+"), sep="~"))
+
 	
 
 
 cl<-match.call()
 if(!spatial.error){
 	
-	results<-ivsplm(formula = formula, effects = effects, data=data, index = index, endog = endog, instruments = instruments, method = method, lag = lag, listw = listw)
+	results<-ivsplm(formula = formula, effects = effects, data=data, index = index, endog = endog, instruments = instruments, method = method, lag = lag, listw = listw, lag.instruments = lag.instruments)
 	
+	results$type <- "lag GM"
 	}
 
 
@@ -45,59 +60,55 @@ if(!spatial.error){
 else{
 	
 	
-if(!lag) results <- sperrorgm(formula = formula, data = data, index = index, listw = listw, moments = moments, endog = endog, instruments = instruments, verbose = verbose, effects = effects, control = control)
+if(!lag) results <- sperrorgm(formula = formula, data = data, index = index, listw = listw, moments = moments, endog = endog, instruments = instruments, verbose = verbose, effects = effects, control = control, lag.instruments = lag.instruments, optim.method = optim.method, pars = pars)
 #, initial.GMerror = initial.GMerror
-else results <- spsarargm(formula = formula, data = data, index = index, listw = listw, moments = moments, lag = lag, endog = endog, instruments = instruments, verbose = verbose, effects = effects, control = control)
+
+else results <- spsarargm(formula = formula, data = data, index = index, listw = listw, listw2 = listw2,  moments = moments, lag = lag, endog = endog, instruments = instruments, verbose = verbose, effects = effects, control = control, lag.instruments = lag.instruments, optim.method = optim.method, pars = pars, twow = twow)
 
 	}
 
 results$call <- cl
 results$ef.sph<- effects
 results$legacy <- c(lag, spatial.error)
+results$endog <- endog
 results
 
 }
 
 
 
-lag.listwpanel<-function(arg1, arg2,indicator){
-	
-	if(!is.matrix(arg2)) arg2<-as.matrix(arg2)
 
-`inter` <- function(arg4) hold <- unlist(tapply(arg4, indicator, function(arg3) lag.listw(arg1,arg3)))
-
-out<-apply(arg2, 2,inter)
-	}
-	
-	
-
-
-panel.transformations<-function(arg1, indicator, type=c("within","between","both")){
+panel.transformations <- function(arg1, indicator, type=c("within","between","both")){
 
 	type<-match.arg(type)
+	num <- length(indicator)
+	den <- length(unique(indicator))
+	tmp <- num/den  
+	# print(tmp)
  	if(!is.matrix(arg1)) arg1<-as.matrix(arg1)
-
-
+ 	
 spms<-function(q) tapply(q,indicator,mean)
 
-switch(type, between = {
+ switch(type, between = {
 
-	arg1_b<-matrix(apply(arg1,2,spms), length(unique(indicator)), ncol(arg1))
+	arg1_b<-matrix(apply(arg1,2,spms), den, ncol(arg1))
 	out<-arg1_b
 		
 		}, 
 		within ={			
 
-	arg1_b<-matrix(apply(arg1,2,spms), length(unique(indicator)), ncol(arg1))
-	arg1_bnt<- apply(arg1_b, 2, function(bb) rep(bb, each = length(indicator)/ length(unique(indicator)) ))             
+	arg1_b<-matrix(apply(arg1,2,spms), den, ncol(arg1))
+	 # print(arg1_b)
+	arg1_bnt<- apply(arg1_b, 2, function(bb) rep(bb,  tmp))             
+	# print(arg1_bnt)
 	arg1_w	<- arg1 - arg1_bnt
 	out<-arg1_w
 		
 			}, 			
 			both = {
 				
-	arg1_b<-matrix(apply(arg1,2,spms), length(unique(indicator)), ncol(arg1))
-	arg1_bnt<- apply(arg1_b, 2, function(bb) rep(bb, each = length(indicator)/ length(unique(indicator)) ))  
+	arg1_b<-matrix(apply(arg1,2,spms), den, ncol(arg1))
+	arg1_bnt<- apply(arg1_b, 2, function(bb) rep(bb, tmp ))  
 	arg1_w	<- arg1 - arg1_bnt
 	out<-list(arg1_w, arg1_b)			
 				
@@ -110,23 +121,21 @@ out
 	}
 
 
-spgm.tsls<-function(y, yend, X, Zinst, Hinst= NULL, instr = FALSE){
+spgm.tsls <- function(y, yend, X, Zinst, Hinst= NULL, instr = FALSE){
+
 	yend<-as.matrix(yend)
-
-if (instr) H<-Hinst	
+if (instr) H <- Hinst	
 else    H <- cbind(X, Zinst)
-
    Z <- cbind(yend, X)
-  Znames<- colnames(Z) 
+   Znames<- colnames(Z) 
 	 yendp<-matrix(,nrow(yend), ncol(yend))
-for(i in 1:ncol(yend))    yendp[,i] <- fitted.values(lm(yend[,i] ~ H -1 ))
+for(i in 1:ncol(yend))	yendp[,i] <- fitted.values(lm(yend[,i] ~ H-1  ))
     Zp <- cbind(yendp,X)
-    #print(Zp[1:5,])
     model.fit<-lm(y~Zp-1)
     biv <- coefficients(model.fit)
-#print(biv)
+readout<- which(is.na(biv))
 
-if(any(is.na(biv)))  yp <- Z[,-which(is.na(biv))] %*% biv[-which(is.na(biv))]
+if(any(is.na(biv)))  yp <- as.matrix(Z[,-which(is.na(biv))]) %*% biv[-which(is.na(biv))]
 else yp <- Z %*% biv
 
 
@@ -136,7 +145,7 @@ else yp <- Z %*% biv
         df <- model.fit$df.residual
         s2 <- sse/df
         
-if(any(is.na(biv)))   Zp<-Zp[,-which(is.na(biv))]  
+if(any(is.na(biv)))   Zp<-as.matrix(Zp)[,-which(is.na(biv))]  
 
 
 ZpZi<-solve(crossprod(Zp))   
@@ -153,26 +162,34 @@ else	biv<-biv
 
 
         result <- list(coefficients = biv, var = varb, sse = sse, 
-            residuals = as.numeric(ehat), df = df, Zp = Zp)
+            residuals = as.numeric(ehat), df = df, Zp = Zp, readout = readout)
     
     result
 }
 
 
 
-
-sperrorgm<-function(formula, data = list(), index = NULL, listw , moments = c("initial", "weights", "fullweights"), endog = NULL, instruments = NULL, verbose = FALSE, effects = c("fixed","random"), control = list() ){
+sperrorgm<-function(formula, data = list(), index = NULL, listw , moments = c("initial","weights","fullweights"), endog = NULL, instruments = NULL, verbose = FALSE, effects = c("fixed","random"), control = list(), lag.instruments = lag.instruments, optim.method = optim.method, pars = pars ){
 
 effects<-match.arg(effects)
 moments<-match.arg(moments)
-	indes<-index
-if(!is.null(index)) {
-    require(plm)
+indes<-index
+
+ if(!is.null(index)) {
+    #require(plm)
     data <- plm.data(data, index)
     }
-    
+  
   index <- data[,1]
   tindex <- data[,2]
+
+  names(index)<-row.names(data)
+  ind <-index[which(names(index)%in%row.names(data))]
+  tind<-tindex[which(names(index)%in%row.names(data))]
+   spord <- order(tind, ind)
+   # print(spord)
+   data <-  data[spord,]
+
 
   cl <- match.call()
   if(dim(data)[[1]]!=length(index)) stop("Non conformable arguments")
@@ -186,150 +203,94 @@ if(!is.null(index)) {
 
 
    
-  names(index)<-row.names(data)
-  ind<-index[which(names(index)%in%row.names(x))]
-  tind<-tindex[which(names(index)%in%row.names(x))]
   N<-length(unique(ind))
   k<-dim(x)[[2]]
   T<-max(tapply(x[,1],ind,length))
   NT<-length(ind)
-  indt<-rep(seq(1,N), T)
-  tindt<-rep(seq(1,T), each = N)
-  tord<-order(indt,tindt)
+
   
   balanced<-N*T==NT
 if(!balanced) stop("Estimation method unavailable for unbalanced panels")
 
-if (is.matrix(listw)){
-        if(dim(listw)[[1]] != N) 
-            stop("Non conformable spatial weights")
-        require(spdep)
-        listw <- mat2listw(listw)
-    }
-    else{
-if(length(listw$neighbours)!=N	)stop("Non conformable spatial weights")
-    	}
-
-if (!inherits(listw, c("listw", "matrix"))) 
-        stop("listw should be either a matrix of an object of class listw")
+I_T <- Diagonal(T)
+Ws <- kronecker(I_T, listw)
 
 
 if(!is.null(endog)){
-	if(is.character(endog)){
-	xend<- match(endog, colnames(data))
-	endog <- data[,xend]
-}
-kend <- ncol(as.matrix(endog)) 
-
-if(is.null(instruments)) stop("No instruments specified")
-if(is.character(instruments)){
-	inst <- match(instruments, colnames(data))
-	instruments <- data[,inst]
-	}
-kinst <- ncol(instruments) 
-
-if(kinst < kend) stop("The model is not identified: Not enough instruments specified")
+	endog <- as.matrix(lm(endog, data, na.action = na.fail, method = "model.frame"))
+if(is.null(instruments)) stop("No instruments specified  for the additional variable")
+else instruments <- as.matrix(lm(instruments, data, na.action = na.fail, method = "model.frame"))	
 	}
 
-require(plm)	
 
-transx<-panel.transformations(x, ind, type= "both")
+
+indic <- rep(1:N,T)
+
+transx <- panel.transformations(x, indic, type= "both")
 Xbetween<-transx[[2]]
 Xwithin<-transx[[1]]
-
-
-
+Xbetween <- as.matrix(Xbetween)
+Xwithin <- as.matrix(Xwithin)
 del<-which(diag(var(as.matrix(Xwithin)))==0)
-
 if (colnames(x)[1] == "(Intercept)") Xbetween <- Xbetween[,-1]
-delb<-as.numeric(which(diag(var(Xbetween))==0))
+delb <- which(diag(var(as.matrix(Xbetween)))==0)
 if(length(delb)==0) Xbetween<-Xbetween
 else Xbetween<-Xbetween[,-delb]
 Xbetween<-cbind(1,Xbetween)
 
-
-
-WX <- lag.listwpanel(listw, x, tind)
-WX<-WX[tord,]
-WWX <- lag.listwpanel(listw, WX, tind)
-WWX<-WWX[tord,]
-WX<-WX[,-del]
-WWX<-WWX[,-del]
-HX<-cbind(WX, WWX)
-
-#
-
-WXwithin <- lag.listwpanel(listw, Xwithin, tind)
-WXwithin<-WXwithin[tord,]
-WWXwithin <- lag.listwpanel(listw, WXwithin, tind)
-WWXwithin<-WWXwithin[tord,]
-WXwithin<-WXwithin[,-del]
-WWXwithin<-WWXwithin[,-del]
-
-
-spms<-function(q) tapply(q,ind,mean)
-Xbetweennt<-matrix(,NT,ncol(Xbetween))
-for (i in 1:ncol(Xbetween)) Xbetweennt[,i]<-rep(Xbetween[,i],each=T)
-if (colnames(x)[1] == "(Intercept)") Xbetweennt <- Xbetweennt[,-1]
-
-WXbetween <- lag.listwpanel(listw, Xbetweennt, tind)
-WXbetween <- lag.listwpanel(listw, Xbetweennt, tind)
-if(length(delb)==0) WXbetween<-WXbetween
-else WXbetween<-WXbetween[,-delb]
-WXbetween<-WXbetween[tord,]
-WWXbetween <- lag.listwpanel(listw, WXbetween, tind)
-if(length(delb)==0) WWXbetween<-WWXbetween
-else WWXbetween<-WWXbetween[,-delb]
-WWXbetween<-WWXbetween[tord,]
-
-
-Hwithin<-cbind(Xwithin[,-del],WXwithin, WWXwithin)
-Hbetween<-cbind(1, Xbetweennt,WXbetween, WWXbetween)
-Hgls<-cbind(1, Hwithin, Hbetween[,-1])
-
-
-	switch(effects, 
+switch(effects, 
 
 	fixed = {
 
-formula1<- formula(paste(formula[2],"~",formula[3],-1))
-if(is.null(endog))	 result<-plm(formula = formula1, data = data, effect = "individual", model = "within") 
-else 	result<-ivplm.w2sls(Y = y,X =x, H = instruments, endog = endog, ind = ind, tind = tind, lag = FALSE, listw = listw)
-#print(result$coefficients)
+if(is.null(endog)){
+ywithin <- panel.transformations(y, indic, type= "within")	
+ result <- lm(ywithin ~ Xwithin[,-del] -1)
+}	
 
-residuals<-as.matrix(as.numeric(residuals(result)))
-oo<-order(tind,ind)
-res<-residuals[oo,]
+else 	result <- ivplm.w2sls(Y = y, X =x, H = instruments, endog = endog, lag = FALSE, listw = Ws, lag.instruments = lag.instruments, T, N, NT)
 
-Gg<-fswithin(listw,res,N,T)
-pars<-c(0.2, 0.5)
-#estim1 <- nlminb(pars, arg, v = Gg, verbose = verbose, control = control, lower=c(-0.999,0), upper=c(0.999,Inf))
+res <- as.matrix(residuals(result)) 
 
-estim1 <- optim(pars, arg, v = Gg, verbose = verbose)
+
+
+Gg<-fswithin(Ws, res, N, T)
+
+if(is.null(pars)) {
+	
+    wres <- as.matrix(Ws %*% res)
+    r.init <- solve(crossprod(res),crossprod(res,wres))
+if(is.null(endog))	v.init <- crossprod(res)/NT	
+else    	        v.init <- result$sigmav
+	pars <- c(r.init, v.init)	
+}
+
+if (optim.method == "nlminb") estim1 <- nlminb(pars, arg, v = Gg, verbose = verbose, control = control, lower=c(-0.999,0), upper=c(0.999, Inf))
+
+else estim1 <- optim(pars, arg, v = Gg, verbose = verbose, control = control, method = optim.method)
 
 	finrho=estim1$par[1]
-	finsigmaV=estim1$par[2]
-#print(c(finrho,finsigmaV))	
+	 finsigmaV=estim1$par[2]
+	# finsigmaV = result$sigmav
+     # print(c(finrho,finsigmaV))	
 
-	wy<-lag.listwpanel(listw, y, tind)
-	wy<-wy[tord]
+   wy <- as.matrix(Ws %*% y)
    yt <- y-finrho*wy
-   xl<- lag.listwpanel(listw, x, tind)
-   xl<-xl[tord,]
+   xl<- as.matrix(Ws %*%  x)
    xt <- x-finrho*xl
 
 
-	yf<-panel.transformations(yt,ind, type= "within")
-    xf<-panel.transformations(xt,ind, type= "within")
+	yf<-panel.transformations(yt,indic, type= "within")
+    xf<-panel.transformations(xt,indic, type= "within")
 	xf<-xf[,-del]
 	xf<-as.matrix(xf)
 	colnames(xf)<-colnames(x)[-del]
+	wxf <- as.matrix(Ws %*% xf)
 
 if (is.null(endog)){
 
 result<-lm(as.matrix(yf)~as.matrix(xf)-1)
 vcov<-vcov(result)
-betaGLS<-coefficients(result)
+betaGLS <- coefficients(result)
 
 	names(betaGLS)<-colnames(xf)
   errcomp<-rbind(finrho,finsigmaV)
@@ -351,21 +312,18 @@ betaGLS<-coefficients(result)
 
 else{
 	
-	endogl<-lag.listwpanel(listw, endog, tind)
-	endogl<-endogl[tord,]
-   endogt <- endog - finrho*endogl
+   endogl <- as.matrix(Ws %*% endog)
+   endogt <- endog - finrho* endogl
 
-endogf<-panel.transformations(endogt,ind, type= "within")
-instwithin<-panel.transformations(instruments,ind, type= "within")
+endogf<-panel.transformations(endogt,indic, type= "within")
 
-  instwithin<-cbind(xf, instwithin)
-#   instwithin<-cbind(Hwithin, instwithin)
-
-
-  model.fit <- spgm.tsls(yf,endogf, xf, Hinst = instwithin, instr  = TRUE )  
+  instwithin <- result$Hwithin
+ # instwithin<-cbind(xf, wxf, instwithin)
+ instwithin<-cbind(xf, instwithin)
+  model.fit <- spgm.tsls(yf,endogf, xf, Hinst = instwithin, instr  = T )  
   betaGLS <- model.fit$coefficients 
+ # print(betaGLS)
 
-#print(betaGLS)
 
   Zp<-model.fit$Zp
   Z<-cbind(endog,x[,-del])
@@ -401,18 +359,24 @@ if(is.null(endog))	{
 
 result<-lm(y~x-1) 
 
-residuals<-as.matrix(as.numeric(residuals(result)))
-oo<-order(tind,ind)
-res<-residuals[oo,]
+res<-as.matrix(residuals(result))
+Gg<-fs(Ws,res,N,T)
 
-Gg<-fs(listw,res,N,T)
-pars<-c(0,0)
-#estim1 <- nlminb(pars, arg, v = Gg, verbose = verbose, control = control, lower=c(-0.999,0), upper=c(0.999,Inf))
-estim1 <- optim(pars, arg, v = Gg, verbose = verbose)
+## parameter initial values 
+ if(is.null(pars)) {
+    wres <- as.matrix(Ws %*% res)
+    r.init <- solve(crossprod(res),crossprod(res,wres))
+	v.init <- crossprod(res)/NT	
+	pars <- c(r.init, v.init)	
+}
+
+
+ if (optim.method == "nlminb") estim1 <- nlminb(pars, arg, v = Gg, verbose = verbose, control = control, lower=c(-0.999,0), upper=c(0.999,Inf))
+else estim1 <- optim(pars, arg, v = Gg, verbose = verbose, control = control, method = optim.method)
 
 urub<-res- estim1$par[1]*Gg$ub
 Q1urQ1ub<-Gg$Q1u - estim1$par[1]*Gg$Q1ub
-S1<- crossprod(urub, Q1urQ1ub)/N
+S1 <- crossprod(urub, Q1urQ1ub)/N
 
 switch(moments, 
 	  
@@ -428,9 +392,9 @@ switch(moments,
     	
   	   Ggw<-pw(bigG=Gg$bigG, smallg=Gg$smallg, Q1u=Gg$Q1u,Q1ub=Gg$Q1ub,Q1ubb=Gg$Q1ubb, u=res, ub=Gg$ub,ubb=Gg$ubb,N=N, TR=Gg$TR)
       pars2<-c(estim1$par[1],estim1$par[2],S1)
-#      estim2 <- nlminb(pars2, arg1, v = Ggw,T=T,ss=estim1$par[2] ,SS=S1, verbose = verbose, control = control, lower=c(-0.999,0,0), upper=c(0.999,Inf,Inf))
-#
-      estim2 <- optim(pars2, arg1, v = Ggw,T=T,ss=estim1$par[2] ,SS=S1, verbose = verbose)
+
+ if (optim.method == "nlminb") estim2 <- nlminb(pars2, arg1, v = Ggw,T=T,ss=estim1$par[2] ,SS=S1, verbose = verbose, control = control, lower=c(-0.999,0,0), upper=c(0.999,Inf,Inf))
+else      estim2 <- optim(pars2, arg1, v = Ggw,T=T,ss=estim1$par[2] ,SS=S1, verbose = verbose, control = control, method = optim.method)
 
 	finrho=estim2$par[1]
 	finsigmaV=estim2$par[2]
@@ -441,11 +405,11 @@ switch(moments,
     fullweights = {
 
 	   Ggw<-pw(bigG=Gg$bigG, smallg=Gg$smallg, Q1u=Gg$Q1u,Q1ub=Gg$Q1ub,Q1ubb=Gg$Q1ubb, u=res, ub=Gg$ub,ubb=Gg$ubb,N=N, TR=Gg$TR)
-      weights<-tw(W=listw,N)
+      weights<-tw(listw, N)
       pars2<-c(estim1$par[1],estim1$par[2],S1)
-#      estim3 <-nlminb(pars2, arg2, v = Ggw, T=T,ss=estim1$par[2] ,SS=S1, TW=weights$TW, verbose = verbose, control = control, lower=c(-0.999,0,0), upper=c(0.999,Inf,Inf))
-#
-      estim3 <-optim(pars2, arg2, v = Ggw, T=T,ss=estim1$par[2] ,SS=S1, TW=weights$TW, verbose = verbose)
+
+ if (optim.method == "nlminb") estim3 <-nlminb(pars2, arg2, v = Ggw, T=T,ss=estim1$par[2] ,SS=S1, TW=weights$TW, verbose = verbose, control = control, lower=c(-0.999,0,0), upper=c(0.999,Inf,Inf))
+else   estim3 <-optim(pars2, arg2, v = Ggw, T=T,ss=estim1$par[2] ,SS=S1, TW=weights$TW, verbose = verbose, control = control, method = optim.method)
       
 	finrho=estim3$par[1]
 	finsigmaV=estim3$par[2]
@@ -459,26 +423,30 @@ switch(moments,
 	
 	}
 else{
-	
-		result1<-ivplm.w2sls(Y = y,X =x, H = instruments, endog = endog,  ind = ind, tind = tind, lag = FALSE, listw = listw)
 
-		result2<-ivplm.b2sls(Y = y,X =x, H = instruments, endog = endog,  ind = ind, tind = tind, lag = FALSE, listw = listw)
-#print(result2$coefficients)
+		result1<-ivplm.w2sls(Y = y,X =x, H = instruments, endog = endog,  lag = FALSE, listw = Ws, lag.instruments = lag.instruments, T, N, NT)
 
-residuals1<-as.matrix(as.numeric(residuals(result1)))
-oo<-order(tind,ind)
-res1<-residuals1[oo]
+		result2<-ivplm.b2sls(Y = y,X =x, H = instruments, endog = endog,  lag = FALSE, listw = Ws, lag.instruments = lag.instruments, T, N, NT)
+
+res1<-as.matrix(as.numeric(residuals(result1)))
 res2<-as.matrix(as.numeric(residuals(result2)))
 
-Gg<-fswithin(listw,res1,N,T)
+Gg<-fswithin(Ws,res1,N,T)
 
-pars<-c(0.2, result1$sigmav)
-#estim1 <- nlminb(pars, arg, v = Gg, verbose = verbose, control = control, lower=c(-0.999, 0), upper=c(0.999,Inf))
+if(is.null(pars)) {
+    wres <- as.matrix(Ws %*% res1)
+    r.init <- solve(crossprod(res1),crossprod(res1,wres))
+	v.init <- result1$sigmav	
+	pars <- c(r.init, v.init)	
+}
 
-estim1 <- optim(pars, arg, v = Gg, verbose = verbose)
+
+if (optim.method == "nlminb")  estim1 <- nlminb(pars, arg, v = Gg, verbose = verbose, control = control, lower=c(-0.999, 0), upper=c(0.999,Inf))
+
+else estim1 <- optim(pars, arg, v = Gg, verbose = verbose, control = control, method = optim.method)
 
 
-Wres2 <-lag.listw(listw, res2)
+Wres2 <- as.matrix(listw %*% res2)
 urhoWu<-res2 - estim1$par[1] * Wres2
 finsigma1<-crossprod(urhoWu)/N
 
@@ -495,11 +463,12 @@ switch(moments,
     
     weights = {
     	
-    	Ggw<-pwbetween(bigG=Gg$bigG, smallg=Gg$smallg, u=res2, N=N, T=T, TR=Gg$TR, listw=listw)
+    	Ggw<-pwbetween(bigG=Gg$bigG, smallg=Gg$smallg, u=res2, N=N, T=T, TR=Gg$TR, listw = listw)
       pars2<-c(estim1$par[1],estim1$par[2],finsigma1)
-#      estim2 <- nlminb(pars2, arg1, v = Ggw,T=T, ss= estim1$par[2], SS=finsigma1 , verbose = verbose, control = control, lower=c(-0.999,0,0), upper=c(0.999,Inf,Inf))
 
-      estim2 <- optim(pars2, arg1, v = Ggw,T=T, ss= estim1$par[2], SS=finsigma1 , verbose = verbose)
+ if (optim.method == "nlminb")  estim2 <- nlminb(pars2, arg1, v = Ggw,T=T, ss= estim1$par[2], SS=finsigma1 , verbose = verbose, control = control, lower=c(-0.999,0,0), upper=c(0.999,Inf,Inf))
+
+else    estim2 <- optim(pars2, arg1, v = Ggw, T=T, ss= estim1$par[2], SS=finsigma1 , verbose = verbose, control = control, method = optim.method)
       
 	finrho=estim2$par[1]
 	finsigmaV=estim2$par[2]
@@ -510,11 +479,12 @@ switch(moments,
     fullweights = {
 
 	   Ggw<-pwbetween(bigG=Gg$bigG, smallg=Gg$smallg, u=res2, N=N,T=T, TR=Gg$TR, listw = listw)
-      weights<-tw(W=listw,N)
+      weights<-tw(listw, N)
       pars2<-c(estim1$par[1],estim1$par[2],finsigma1)
-#      estim3 <-nlminb(pars2, arg2, v = Ggw, T = T,ss= estim1$par[2], SS=finsigma1 , TW = weights$TW, verbose = verbose, control = control, lower=c(-0.999,0,0), upper=c(0.999,Inf,Inf))
+
+ if (optim.method == "nlminb") estim3 <-nlminb(pars2, arg2, v = Ggw, T = T,ss= estim1$par[2], SS=finsigma1 , TW = weights$TW, verbose = verbose, control = control, lower=c(-0.999,0,0), upper=c(0.999,Inf,Inf))
  
-       estim3 <-optim(pars2, arg2, v = Ggw, T = T,ss= estim1$par[2], SS=finsigma1 , TW = weights$TW, verbose = verbose)
+else    estim3 <-optim(pars2, arg2, v = Ggw, T = T,ss= estim1$par[2], SS=finsigma1 , TW = weights$TW, verbose = verbose, control = control, method = optim.method)
 
 	finrho=estim3$par[1]
 	finsigmaV=estim3$par[2]
@@ -527,22 +497,20 @@ switch(moments,
 	}
 
 theta<- 1-(sqrt(finsigmaV)/sqrt(finsigma1))	
-wy <- lag.listwpanel(listw, y, tind)
-wy<-wy[tord]
+wy <- as.matrix(Ws %*% y)
 yt <- y-finrho*wy
-xl<- lag.listwpanel(listw, x, tind)
-xl<-xl[tord,]
+xl<- as.matrix(Ws %*% x)
 xt <- x-finrho*xl
 
  
-ytmt<-tapply(yt, ind, mean)
-ytNT<-rep(ytmt, each = T)
+ytmt<-tapply(yt, indic, mean)
+ytNT<-rep(ytmt, T)
 yf<-(yt - theta*ytNT)
 
-dm1<- function(A) rep(unlist(tapply(A, ind, mean, simplify=TRUE)), each= T)
+dm1<- function(A) rep(unlist(tapply(A, indic, mean, simplify=TRUE)), T)
 xtNT<-apply(xt,2,dm1)
 xf<-(xt - as.numeric(theta)*xtNT)
-
+wxf <- as.matrix(Ws %*% xf)
 
 if (is.null(endog)){
 	
@@ -579,29 +547,26 @@ sigma2 <- SGLS
 
 else{
 	
-	endogl<-lag.listwpanel(listw, endog, tind)
-	endogl<-endogl[tord,]
+	endogl<- as.matrix(Ws %*% endog)
    endogt <- endog - finrho*endogl
 
 endogt<-as.matrix(endogt)
 endogtNT<-apply(endogt,2,dm1)
 endogf<-(endogt - as.numeric(theta)*endogtNT)
 
-instt<-panel.transformations(instruments,ind, type= "both")
-instbetween<-instt[[2]]
-instwithin<-instt[[1]]
+# instt<-panel.transformations(instruments,indic, type= "both")
+# instbetween<-instt[[2]]
+# instwithin<-instt[[1]]
+instbetween <- result2$Hbetween
+instwithin <- result1$Hwithin
 
 instbetweennt<-matrix(,NT,ncol(instbetween))
-for (i in 1:ncol(instbetween)) instbetweennt[,i]<-rep(instbetween[,i],each=T)
+for (i in 1:ncol(instbetween)) instbetweennt[,i]<-rep(instbetween[,i], T)
 
  Zf<-cbind(endog,x)
-
-#Hins<-cbind(xf,Xwithin,Xbetweennt,instwithin,instbetweennt)
-#Hgls
-Hins<-cbind(xf,instwithin,instbetweennt)
-#Hins<-cbind(Hgls, instwithin, instbetweennt)
-
-  model.fit <- spgm.tsls(yf,endogf,xf, Hinst = Hins, instr  = TRUE )  
+ # Hins<-cbind(xf,wxf, instwithin,instbetweennt)
+ Hins<-cbind(xf, instwithin,instbetweennt)
+  model.fit <- spgm.tsls(yf,endogf,xf, Hinst = Hins, instr  = T)  
   betaGLS <- model.fit$coefficients 
 
 
@@ -647,188 +612,182 @@ return(spmod)
 
 
 
+# Hmatrices <- function(Ws, x, Xwithin, Xbetween, del, delb, NT){
+	
+# WX <- as.matrix(Ws %*% x)
+# WWX <-as.matrix(Ws %*% WX)
+# WX <- WX[,-del]
+# WWX <- WWX[,-del]
+# HX <- cbind(WX, WWX)
 
-spsarargm<-function(formula, data = list(), index = NULL, listw , moments = c("initial", "weights", "fullweights"), lag= FALSE, endog = NULL, instruments = NULL, verbose = FALSE, effects = c("fixed","random"), control = list()){
+# WXwithin <- as.matrix(Ws %*% Xwithin)
+# WWXwithin <- as.matrix(Ws %*% WXwithin)
+# WXwithin<-WXwithin[,-del]
+# WWXwithin<-WWXwithin[,-del]
+
+
+# # spms <- function(q) tapply(q, indic, mean)
+
+# Xbetweennt<-matrix(,NT, ncol(Xbetween))
+# for (i in 1:ncol(Xbetween)) Xbetweennt[,i]<-rep(Xbetween[,i], T)
+# if (colnames(x)[1] == "(Intercept)") Xbetweennt <- Xbetweennt[,-1]
+
+
+# WXbetween <- as.matrix(Ws %*% Xbetweennt)
+# if(length(delb)==0) WXbetween<-WXbetween
+# else WXbetween<-WXbetween[,-delb]
+# WWXbetween <- as.matrix(Ws %*% WXbetween)
+# if(length(delb)==0) WWXbetween<-WWXbetween
+# else WWXbetween<-WWXbetween[,-delb]
+
+# Hwithin<-cbind(Xwithin[,-del],WXwithin, WWXwithin)
+# Hbetween<-cbind(1, Xbetweennt,WXbetween, WWXbetween)
+# Hgls<-cbind(1, Hwithin, Hbetween[,-1])
+
+# Hmatr <- list(Hwithin, Hbetween, Hgls)
+
+# }
+
+
+spsarargm<-function(formula, data = list(), index = NULL, listw, listw2 = NULL, moments = c("initial", "weights", "fullweights"), lag= FALSE, endog = NULL, instruments = NULL, verbose = FALSE, effects = c("fixed","random"), control = list(), lag.instruments = lag.instruments, optim.method = optim.method, pars = pars, twow ){
+
 
 effects<-match.arg(effects)
 moments<-match.arg(moments)
+indes<-index
 
-
-	
-if(!is.null(index)) {
-    require(plm)
+ if(!is.null(index)) {
+    #require(plm)
     data <- plm.data(data, index)
     }
+  
   index <- data[,1]
   tindex <- data[,2]
+
+  names(index)<-row.names(data)
+  ind <-index[which(names(index)%in%row.names(data))]
+  tind<-tindex[which(names(index)%in%row.names(data))]
+   spord <- order(tind, ind)
+   # print(spord)
+   data <-  data[spord,]
+
+
   cl <- match.call()
-if(dim(data)[[1]]!=length(index)) stop("Non conformable arguments")
-  
+  if(dim(data)[[1]]!=length(index)) stop("Non conformable arguments")
+
+
     mt <- terms(formula, data = data)
     mf <- lm(formula, data, na.action = na.fail, method = "model.frame")
 
     y <- model.extract(mf, "response")
     x <- model.matrix(mt, mf)
+    namesx <- colnames(x)
     
-  names(index)<-row.names(data)
-  ind<-index[which(names(index)%in%row.names(x))]
-  tind<-tindex[which(names(index)%in%row.names(x))]
   N<-length(unique(ind))
   k<-dim(x)[[2]]
   T<-max(tapply(x[,1],ind,length))
   NT<-length(ind)
-  indt<-rep(seq(1,N), T)
-  tindt<-rep(seq(1,T), each = N)
-  tord<-order(indt,tindt)
+  indic <- rep(1:N,T)
 
   balanced<-N*T==NT
 if(!balanced) stop("Estimation method unavailable for unbalanced panels")
 
-if (is.matrix(listw)){
-        if(dim(listw)[[1]] != N) 
-            stop("Non conformable spatial weights")
-        require(spdep)
-        listw <- mat2listw(listw)
-    }
-    else{
-if(length(listw$neighbours)!=N	)stop("Non conformable spatial weights")
-			}
 
-if (!inherits(listw, c("listw", "matrix"))) 
-        stop("listw should be either a matrix of an object of class listw")
+I_T <- Diagonal(T)
+Ws <- kronecker(I_T, listw)
 
+if(twow) Ws2 <- kronecker(I_T, listw2)
+else Ws2 <-Ws
 
+listw2nn <- Ws2[1:N, 1:N]
 
 if(!is.null(endog)){
-	if(is.character(endog)){
-	xend<-match(endog, colnames(data))
-	endog <- data[,xend]
-	endog<-as.matrix(endog)
-if(is.null(instruments)) warnings("Spatially lagged exogenous variables will be used as instruments")
-kend <- ncol(as.matrix(endog))  + 1
-	}
-	
-if(is.character(instruments)){
-	inst<-match(instruments, colnames(data))
-	instruments <- data[,inst]
-	instruments<-as.matrix(instruments)
-kinst <- ncol(instruments)  + ifelse(colnames(x)[1]=="(Intercept)", 1, 0) + ncol(x[,-ifelse(colnames(x)[1]=="(Intercept)", 1, 0)])*3
-	}
-
-else kinst <-  ifelse(colnames(x)[1]=="(Intercept)", 1, 0) + ncol(x[,-ifelse(colnames(x)[1]=="(Intercept)", 1, 0)])*3
-
-if(kinst < kend) stop("The model is not identified: Not enough instruments specified")
+	endog <- as.matrix(lm(endog, data, na.action = na.fail, method = "model.frame"))
+if(is.null(instruments)) stop("No instruments specified  for the additional variable")
+else instruments <- as.matrix(lm(instruments, data, na.action = na.fail, method = "model.frame"))	
 	}
 
 
-
-require(plm)
 
 ##transform X	
-transx<-panel.transformations(x, ind, type= "both")
+transx<-panel.transformations(x, indic, type= "both")
 Xbetween<-transx[[2]]
 Xwithin<-transx[[1]]
+Xbetween <- as.matrix(Xbetween)
+Xwithin <- as.matrix(Xwithin)
 del<-which(diag(var(as.matrix(Xwithin)))==0)
-
-
-if (colnames(x)[1] == "(Intercept)") Xbetween <- Xbetween[,-1]
-delb<-as.numeric(which(diag(var(Xbetween))==0))
+if (namesx[1] == "(Intercept)") Xbetween <- Xbetween[,-1]
+delb<-which(diag(var(as.matrix(Xbetween)))==0)
 if(length(delb)==0) Xbetween<-Xbetween
 else Xbetween<-Xbetween[,-delb]
 Xbetween<-cbind(1,Xbetween)
 deltot<-c(del,delb)
-
-WX <- lag.listwpanel(listw, x, tind)
-WX<-WX[tord,]
-WWX <- lag.listwpanel(listw, WX, tind)
-WWX<-WWX[tord,]
-WX<-WX[,-del]
-WWX<-WWX[,-del]
-HX<-cbind(WX, WWX)
-
-
-WXwithin <- lag.listwpanel(listw, Xwithin, tind)
-WXwithin<-WXwithin[tord,]
-WWXwithin <- lag.listwpanel(listw, WXwithin, tind)
-WWXwithin<-WWXwithin[tord,]
-WXwithin<-WXwithin[,-del]
-WWXwithin<-WWXwithin[,-del]
-
-
-spms<-function(q) tapply(q,ind,mean)
-Xbetweennt<-matrix(,NT,ncol(Xbetween))
-for (i in 1:ncol(Xbetween)) Xbetweennt[,i]<-rep(Xbetween[,i],each=T)
-if (colnames(x)[1] == "(Intercept)") Xbetweennt <- Xbetweennt[,-1]
-
-WXbetween <- lag.listwpanel(listw, Xbetweennt, tind)
-WXbetween <- lag.listwpanel(listw, Xbetweennt, tind)
-if(length(delb)==0) WXbetween<-WXbetween
-else WXbetween<-WXbetween[,-delb]
-WXbetween<-WXbetween[tord,]
-WWXbetween <- lag.listwpanel(listw, WXbetween, tind)
-if(length(delb)==0) WWXbetween<-WWXbetween
-else WWXbetween<-WWXbetween[,-delb]
-WWXbetween<-WWXbetween[tord,]
-
-
-Hwithin<-cbind(Xwithin[,-del],WXwithin, WWXwithin)
-Hbetween<-cbind(1, Xbetweennt,WXbetween, WWXbetween)
-Hgls<-cbind(1, Hwithin, Hbetween[,-1])
-
-
+Xbetweennt<-matrix(,NT, ncol(Xbetween))
+for (i in 1:ncol(Xbetween)) Xbetweennt[,i]<-rep(Xbetween[,i], T)
 
 switch(effects, 
 
 	fixed = {
 		
-if(is.null(endog)) result<-ivplm.w2sls(Y = y,X =x, endog = NULL, ind = ind, tind = tind, lag = TRUE, listw = listw)
-else 	result<-ivplm.w2sls(Y = y,X =x, H = instruments, endog = endog, ind = ind, tind = tind, lag = TRUE, listw = listw)
-#plot(density(result$residuals))
-#print(result$coefficients)
+if(is.null(endog)) result<-ivplm.w2sls(Y = y,X = x, lag = TRUE, listw = Ws, listw2 = Ws2, twow = twow, lag.instruments = lag.instruments, T = T, N = N, NT = NT)
+
+else 	result<-ivplm.w2sls(Y = y, X = x, H = instruments, endog = endog, lag = TRUE, listw = Ws, listw2 = Ws2, twow = twow, lag.instruments = lag.instruments, T = T, N = N, NT = NT)
 
 
-residuals<-as.matrix(as.numeric(residuals(result)))
-oo<-order(tind,ind)
-res<-residuals[oo,]
+# print(result$coefficients)
+res <- as.matrix(as.numeric(residuals(result)))
+Hwithin <- cbind(Xwithin[,-del], result$Hwithin)
 
-#print(result$sigmav)
 
-Gg<-fswithin(listw,res,N,T)
-pars<-c(0, 0)
-estim1 <- nlminb(pars, arg, v = Gg, verbose = verbose,  lower=c(-0.999,0), upper=c(0.9999,Inf))
-#estim1 <- optim(pars, arg, v = Gg, verbose = verbose)
+Gg<-fswithin(Ws2,res,N,T)
+
+if(is.null(pars)) {
+	
+    wres <- as.matrix(Ws2 %*% res)
+    r.init <- solve(crossprod(res),crossprod(res,wres))
+	v.init <- crossprod(res)/NT	
+	pars <- c(r.init, v.init)	
+}
+
+
+
+
+if (optim.method == "nlminb")  estim1 <- nlminb(pars, arg, v = Gg, verbose = verbose,  lower=c(-0.999,0), upper=c(0.9999,Inf))
+
+else estim1 <- optim(pars, arg, v = Gg, verbose = verbose, control = control, method = optim.method)
+
 finrho<-estim1$par[1]
 finsigmaV<-estim1$par[2]
-#print(c(finrho,finsigmaV))
+# print(c(finrho,finsigmaV))
 
-	wy<-lag.listwpanel(listw, y, tind)
-	wy<-wy[tord]
+   wy <- as.matrix(Ws2 %*% y)
    yt <- y-finrho*wy
-   xl<- lag.listwpanel(listw, x, tind)
-   xl<-xl[tord,]
+   xl <- as.matrix(Ws2 %*%  x)
    xt <- x-finrho*xl
-	wwy<-lag.listwpanel(listw, wy, tind)
-	wwy<-wwy[tord]
+   
+	wwy <- as.matrix(Ws2 %*% wy)
 	wyt<-wy-finrho*wwy
 
 
-	yf<-panel.transformations(yt,ind, type= "within")
-   xf<-panel.transformations(xt,ind, type= "within")
-   wyf<-panel.transformations(wyt,ind, type= "within")
-	colnames(xf)<-colnames(x)
-
+	yf<-panel.transformations(yt,indic, type= "within")
+   xf<-panel.transformations(xt,indic, type= "within")
+   wyf<-panel.transformations(wyt,indic, type= "within")
+	xf<-xf[,-del]
+	xf<-as.matrix(xf)
+	colnames(xf)<- namesx[-del]
+	# wxf <- as.matrix(Ws %*% xf)
 
 	
 if (is.null(endog)){
 	
-	
 
-model.fit <- spgm.tsls(yf, wyf, xf,  Hwithin)  	
+model.fit <- spgm.tsls(yf, wyf, xf, Hinst =  Hwithin, instr = TRUE)  	
 	  betaGLS <- model.fit$coefficients 
 	  names(betaGLS)[1]<-"lambda"
-
-  Zp<-model.fit$Zp
+# print(length(betaGLS))
+  Zp <- model.fit$Zp
   Z<-cbind(wy,x[,-del])
+  # print(dim(Z))
   fv<-as.matrix(Z) %*% betaGLS
   egls<-y - fv
   SGLS<-sum(egls^2)/(N-1)
@@ -856,29 +815,20 @@ model.data <- data.frame(cbind(y,x))
 
 else{
 	
-	endogl<-lag.listwpanel(listw, endog, tind)
-	endogl<-endogl[tord,]
+	endogl<- as.matrix(Ws2 %*% endog)
    endogt <- endog - finrho*endogl
 
-	endogf<-panel.transformations(endogt,ind, type= "within")
-
-instwithin<-panel.transformations(instruments,ind, type= "within")
-
-instwithin<-cbind(Hwithin,instwithin)
+	endogf<-panel.transformations(endogt,indic, type= "within")
 
   yend<-cbind(endogf, wyf)
   
-model.fit <- spgm.tsls(yf, yend, xf, Hinst = instwithin, instr = TRUE)  	
+model.fit <- spgm.tsls(yf, yend, xf, Hinst = Hwithin, instr = TRUE)  	
 	  betaGLS <- model.fit$coefficients 
 	  names(betaGLS)[ncol(endog)+1]<-"lambda"
 #print(betaGLS)
 
   Zp<-model.fit$Zp
   Z<-cbind(endog, wy, x[,-del])
-#  print(colnames(endog))
-#  print(colnames(x[,-del]))
-#  print(colnames(Z))
-#  print(betaGLS)
   fv<-as.matrix(Z) %*% betaGLS
   egls<-y - fv
   SGLS<-sum(egls^2)/(N-1)
@@ -908,34 +858,45 @@ model.data <- data.frame(cbind(y,x))
 	random = {
 
 if(is.null(endog)){
-	result1<-ivplm.w2sls(Y = y,X =x, H=NULL, endog = NULL, ind = ind, tind = tind, lag = TRUE, listw = listw)
-	result2<-ivplm.b2sls(Y = y,X =x, H=NULL, endog = NULL, ind = ind, tind = tind, lag = TRUE, listw = listw)
+
+	result1<-ivplm.w2sls(Y = y,X =x, lag = TRUE, listw = Ws, listw2 = Ws2, twow = twow, lag.instruments = lag.instruments, T = T, N = N, NT = NT)
+	result2<-ivplm.b2sls(Y = y,X =x, lag = TRUE, listw = Ws, listw2 = Ws2, twow = twow, lag.instruments = lag.instruments, T = T, N = N, NT = NT)
 
 #		fsig1<-result$sigma1
 #		fsigv<-result$sigmav
 	}
 	
 	else{
-		result1<-ivplm.w2sls(Y = y,X =x, H = instruments, endog = endog,  ind = ind, tind = tind, lag = TRUE, listw = listw)
-		result2<-ivplm.b2sls(Y = y,X =x, H = instruments, endog = endog,  ind = ind, tind = tind, lag = TRUE, listw = listw)
+		result1<-ivplm.w2sls(Y = y,X =x, H = instruments, endog = endog, lag = TRUE, listw = Ws, listw2 = Ws2, twow = twow, lag.instruments = lag.instruments, T = T, N = N, NT = NT)
+		result2<-ivplm.b2sls(Y = y,X =x, H = instruments, endog = endog, lag = TRUE, listw = Ws, listw2 = Ws2, twow = twow, lag.instruments = lag.instruments, T = T, N = N, NT = NT)
 
 #		fsig1<-result$sigma1
 #		fsigv<-result$sigmav		
 		}
 
+Hwithin <- result1$Hwithin
+Hbetween <- result2$Hbetween
+Hbetweennt<-matrix(,NT, ncol(Hbetween))
+for (i in 1:ncol(Hbetween)) Hbetweennt[,i]<-rep(Hbetween[,i], T)
 
-
-residuals1<-as.matrix(as.numeric(residuals(result1)))
-oo<-order(tind,ind)
-res1<-residuals1[oo,]
+res1<-as.matrix(as.numeric(residuals(result1)))
 res2<-as.matrix(as.numeric(residuals(result2)))
-Gg<-fswithin(listw,res1,N,T)
 
-pars<-c(0.2,0.5)
-#estim1 <- nlminb(pars, arg, v = Gg, verbose = verbose, control = control, lower=c(-0.999,0), upper=c(0.999,Inf))
-estim1 <- optim(pars, arg, v = Gg, verbose = verbose)
+Gg<-fswithin(Ws2, res1, N, T)
 
-Wres2 <-lag.listw(listw, res2)
+if(is.null(pars)) {
+    wres <- as.matrix(Ws2 %*% res1)
+    r.init <- solve(crossprod(res1),crossprod(res1,wres))
+	v.init <- crossprod(res1)/NT	
+	pars <- c(r.init, v.init)	
+}
+
+
+if (optim.method == "nlminb")  estim1 <- nlminb(pars, arg, v = Gg, verbose = verbose, control = control, lower=c(-0.999,0), upper=c(0.999,Inf))
+
+else estim1 <- optim(pars, arg, v = Gg, verbose = verbose, method = optim.method)
+
+Wres2 <- as.matrix(listw2nn %*% res2)
 urhoWu<-res2 - estim1$par[1] * Wres2
 finsigma1<-crossprod(urhoWu)/N
 
@@ -952,10 +913,12 @@ switch(moments,
     
     weights = {
     	
-    	Ggw<-pwbetween(bigG=Gg$bigG, smallg=Gg$smallg, u=res2, N=N, T=T, TR=Gg$TR, listw=listw)
+    	Ggw<-pwbetween(bigG=Gg$bigG, smallg=Gg$smallg, u=res2, N=N, T=T, TR=Gg$TR, listw=listw2nn)
       pars2<-c(estim1$par[1],estim1$par[2],finsigma1)
-#      estim2 <- nlminb(pars2, arg1, v = Ggw,T=T, ss= estim1$par[2], SS=finsigma1 ,verbose = verbose, control = control, lower=c(-0.999,0,0), upper=c(0.999,Inf,Inf))
-      estim2 <- optim(pars2, arg1, v = Ggw,T=T, ss= estim1$par[2], SS=finsigma1 ,verbose = verbose)
+
+if (optim.method == "nlminb")  estim2 <- nlminb(pars2, arg1, v = Ggw,T=T, ss= estim1$par[2], SS=finsigma1 ,verbose = verbose, control = control, lower=c(-0.999,0,0), upper=c(0.999,Inf,Inf))
+
+else      estim2 <- optim(pars2, arg1, v = Ggw, T=T, ss= estim1$par[2], SS=finsigma1 ,verbose = verbose, method = optim.method)
       
       
 	finrho=estim2$par[1]
@@ -966,12 +929,12 @@ switch(moments,
     
     fullweights = {
 
-	   Ggw<-pwbetween(bigG=Gg$bigG, smallg=Gg$smallg, u=res2, N=N,T=T, TR=Gg$TR, listw = listw)
-      weights<-tw(W=listw,N)
+	   Ggw<-pwbetween(bigG=Gg$bigG, smallg=Gg$smallg, u=res2, N=N,T=T, TR=Gg$TR, listw = listw2nn)
+      weights<-tw(W=listw2nn, N)
       pars2<-c(estim1$par[1],estim1$par[2],finsigma1)
-     # estim3 <-nlminb(pars2, arg2, v = Ggw, T = T, ss= estim1$par[2], SS=finsigma1 ,TW = weights$TW, verbose = verbose, control = control, lower=c(-0.999,0,0), upper=c(0.999,Inf,Inf))
-
-estim3 <-optim(pars2, arg2, v = Ggw, T = T, ss= estim1$par[2], SS=finsigma1 ,TW = weights$TW, verbose = verbose)
+     # 
+if(optim.method == "nlminb")   estim3 <-nlminb(pars2, arg2, v = Ggw, T = T, ss= estim1$par[2], SS=finsigma1 ,TW = weights$TW, verbose = verbose, control = control, lower=c(-0.999,0,0), upper=c(0.999,Inf,Inf))
+else estim3 <-optim(pars2, arg2, v = Ggw, T = T, ss= estim1$par[2], SS=finsigma1 ,TW = weights$TW, verbose = verbose, method = optim.method)
 
 	finrho=estim3$par[1]
 	finsigmaV=estim3$par[2]
@@ -986,33 +949,31 @@ estim3 <-optim(pars2, arg2, v = Ggw, T = T, ss= estim1$par[2], SS=finsigma1 ,TW 
 
  theta<- 1-(sqrt(finsigmaV)/sqrt(finsigma1))
  
-	wy<-lag.listwpanel(listw, y, tind)
-	wy<-wy[tord]
+	wy<- as.matrix(Ws2 %*% y)
    yt <- y-finrho*wy
-   xl<- lag.listwpanel(listw, x, tind)
-   xl<-xl[tord,]
+   xl<- as.matrix(Ws2 %*% x)
    xt <- x-finrho*xl
-   wwy<-lag.listwpanel(listw, wy, tind)
-   wwy<-wwy[tord]
+   wwy<- as.matrix(Ws2 %*% wy)
 	wyt<-wy - finrho*wwy
 
 	
 	
 
-  ytmt<-tapply(yt, ind, mean)
-  ytNT<-rep(ytmt,each = T)
+  ytmt<-tapply(yt, indic, mean)
+  ytNT<-rep(ytmt, T)
   yf<-(yt - theta*ytNT)
-  dm1<- function(A) rep(unlist(tapply(A, ind, mean, simplify=TRUE)), each= T)
+  
+  dm1<- function(A) rep(unlist(tapply(A, indic, mean, simplify=TRUE)), T)
   xtNT<-apply(xt,2,dm1)
   xf<-(xt - as.numeric(theta)*xtNT)
-  wytmt<-tapply(wyt, ind, mean)
-  wytNT<-rep(wytmt,each = T)  
+  
+  wytmt<-tapply(wyt, indic, mean)
+  wytNT<-rep(wytmt, T)  
   wyf<-wyt - as.numeric(theta)*wytNT
 
+Hgls <- cbind(1, Xwithin,Xbetweennt, Hwithin, Hbetweennt)	
 
 if (is.null(endog)){
-	
-	
 model.fit <- spgm.tsls(yf, wyf, xf,  Hgls)  	
 	  betaGLS <- model.fit$coefficients 
 names(betaGLS)[1]<-"lambda"
@@ -1046,23 +1007,14 @@ model.data <- data.frame(cbind(y,x))
 
 else{
 	
-  endogl<-lag.listwpanel(listw, endog, tind)
-  endogl<-endogl[tord,]
+  endogl<-as.matrix(Ws2 %*% endog)
   endogt <- endog - finrho*endogl
 
   endogtNT<-apply(as.matrix(endogt), 2, dm1)
   endogf<-(endogt - as.numeric(theta)*endogtNT)
 
 
-
-transinst<-panel.transformations(instruments,ind, type= "both")
-instbetween<-transinst[[2]]
-instwithin<-transinst[[1]]
-instbetweennt<-matrix(,NT,ncol(instbetween))
-for (i in 1:ncol(instbetween)) instbetweennt[,i]<-rep(instbetween[,i],each=T)
-
   yend<-cbind(endogf, wyf)  
-  Hgls<-cbind(Hgls,instwithin,instbetweennt)  
   
 model.fit <- spgm.tsls(yf, yend, xf,  Hgls)  	
 	  betaGLS <- model.fit$coefficients 
@@ -1104,7 +1056,10 @@ model.data <- data.frame(cbind(y,x))
 	}
 	
 	
-	
-	
+
+
+
+
+
 	
 	
