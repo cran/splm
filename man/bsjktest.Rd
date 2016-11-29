@@ -18,7 +18,7 @@ test=c("C.1","C.2","C.3","J"), ...)
   \item{index}{either NULL (default) or a character vector to identify the indexes among the columns of the \code{data.frame}}
 \item{listw}{either a \code{matrix} or a \code{listw} representing the spatial structure}
 \item{test}{one of \code{c("C.1","C.2","C.3","J")}, the
-  test to be performed. "C.3" is not implemented yet.}
+  test to be performed.}
 \item{...}{additional arguments to be passed}
 }
 

@@ -94,6 +94,7 @@ summary(fespaterr)
 respatlag <- spml(fm, data = Produc, listw = mat2listw(usaww),
                    model="random", spatial.error="none", lag=TRUE)
 summary(respatlag)
+## calculate impact measures
 impac1 <- impacts(respatlag, listw = mat2listw(usaww, style = "W"), time = 17)
 summary(impac1, zstats=TRUE, short=TRUE)
 }

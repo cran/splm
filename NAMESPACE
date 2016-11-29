@@ -1,8 +1,16 @@
+importFrom("methods", "new")
+importFrom("stats", "as.formula", "coef", "coefficients",
+           "fitted.values", "lm", "model.extract", "model.frame",
+           "na.fail", "optimize", "pchisq", "pnorm", "printCoefmat",
+           "residuals", "terms", "var", "vcov")
+importFrom("stats", "cor", "lm.fit", "reshape", "resid")
+importFrom("plm", "pdata.frame")
 importFrom(stats, model.matrix, model.response, aggregate, effects)
 importFrom(stats, optim, nlminb)
 importFrom(plm, plm.data)
 importFrom(plm, plm)
 importFrom(plm, pmodel.response)
+importFrom(plm, pdim)
 importFrom(nlme, fdHess, lme)
 import(spdep)
 importFrom(ibdreg, pchibar)
@@ -11,11 +19,13 @@ importFrom(spam, as.spam, diag.spam, solve.spam, t.spam, determinant.spam)
 importFrom(maxLik, maxLik)
 importFrom(bdsmatrix, bdsmatrix)
 importFrom(MASS, ginv)
+importFrom(parallel, mclapply)
 
 
 export(bsktest, sphtest, bsjktest, vcov.splm,
 effects.splm, print.effects.splm, slag, 
-print.splm, spml, spgm, summary.splm, sphtest, listw2dgCMatrix, spreml)
+print.splm, spml, spgm, summary.splm, sphtest,
+listw2dgCMatrix, spreml, rwtest, slmtest)
 
 
 
@@ -26,7 +36,13 @@ S3method(vcov, splm)
 S3method(print, effects.splm)
 S3method(bsktest, formula)
 S3method(bsjktest, formula)
+S3method(summary, splm)
 S3method(sphtest, formula)
 S3method(sphtest, splm)
 S3method(impacts, splm)
 S3method(slag, pseries)
+S3method(rwtest, formula)
+S3method(rwtest, panelmodel)
+S3method(rwtest, pseries)
+S3method(slmtest, formula)
+S3method(slmtest, plm)

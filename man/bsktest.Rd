@@ -11,7 +11,7 @@
 bsktest(x,...)
 \method{bsktest}{formula}(x, data, index=NULL, listw,
 test=c("LMH","LM1","LM2","CLMlambda","CLMmu"), 
-standardize=TRUE, ...)
+standardize=FALSE, method = "eigen", ...)
 }
 \arguments{
 \item{x}{a \code{formula}}
@@ -22,6 +22,7 @@ standardize=TRUE, ...)
 \item{test}{one of \code{c("LMH","LM1","LM2","CLMlambda","CLMmu")}, the
   test to be performed}
 \item{standardize}{whether to standardize the test statistic or not (applies only to LM1 and LM2)}
+\item{method}{select a method for ML in "CLMmu". the default is "eigen"}
 \item{...}{additional arguments to be passed}
 }
 
@@ -44,7 +45,7 @@ data(Produc, package="plm")
 data(usaww)
 fm <- log(gsp)~log(pcap)+log(pc)+log(emp)+unemp
 bsktest(fm,data=Produc, listw = mat2listw(usaww),
-  test="LM1", standardize=TRUE)
+  test="LM1")
 }
 
 \keyword{htest}

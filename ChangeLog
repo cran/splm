@@ -1,3 +1,33 @@
+Changes in Version 1.4-6
+ o Added slmtest() for the (locally robust) LM test of spatial lag sub spatial error or spatial error sub spatial lag; with methods for formula and plm.
+
+Changes in Version 1.4-5
+ o Added rwtest() for the randomized CD-p procedure, with methods for formula, pseries and panelmodel.
+
+Changes in Version 1.4-4
+ o Fixed clmmtest() in bsktest.R (now takes residuals for the restricted model from spreml(..., errors="sem", lag=F) instead of spfeml()). Temporarily disabled standardized LM tests SLM1 and SLM2; default set at 'standardize=FALSE'in main function.
+
+Changes in Version 1.4-3
+ o Introduced Baltagi et al. C.3 test (RE conditional on SEM and AR(1)) after successful testing.
+
+Changes in Version 1.4-2
+ o Set method="eigen" as default in bsktest, as claimed in the "Arguments" section of the docs bsktest.Rd (previous setting at NULL broke clmmtest()); fixed bsktest.Rd accordingly (Usage section).
+
+Changes in Version 1.4-0
+ o Removed special case from beginning of spml(), allegedly for consistency with bsktest(), which actually never calls spml (but spfeml() directly). Added missing 'index' argument to data transformation module in spreml.R.
+
+Changes in Version 1.4-0
+ o Harmonized print.summary for fixed and random models (now fixed print spatial parms separately). Improved header of printout for random type models, now prints a correct description of model type. Fixed cllistw() internal function for checking whether listw is a listw or a matrix and convert if needed.
+
+Changes in Version 1.3-11
+ o Fixed 'itaww.rda' weights matrix for Italian provinces. An '1' was missing between 98 (Lodi) and 19 (Cremona).
+
+Changes in Version 1.3-10
+ o Fixed a couple of degenerating matrices when K=1 in likelihoodsFE.R by adding ',drop=FALSE' to subsetting '['
+
+Changes in Version 1.3-8
+ o Completed implementation of 'plm' infrastructure in spreml; now works with data.frames plus (possibly implicit) indices or pdata.frames indifferently.
+
 Changes in Version 1.3-7
  o Added slag() method for spatially lagging a vector or a pseries
 
@@ -26,7 +56,7 @@ Changes in Version 1.1-0
  o revised all random effects estimators as per paper submitted to CSDA. Sparse matrix methods, flexible optimizers, SAREM2SRRE and SEM2SRRE models have been added. Datasets and weights for Rice Farming and Italian Insurance examples have been added.
 
 Changes in Version 1.0-5
- o fixed some bugs in spfeml and update the relative function to changes in spdep (a few differences arises with the paper on JSS such as: the residuals of the sarar model and the s.e. of the spatial coefficients) 
+ o fixed some bugs in spfeml and update the relative function to changes in spdep (a few differences arises with the paper on JSS such as: the residuals of the sarar model and the s.e. of the spatial coefficients)
 
 
 Changes in Version 1.0-03
@@ -35,7 +65,7 @@ Changes in Version 1.0-02
   o fixed error in bsjktest(..., type="C.2") (calling "rho" parm by wrong name)
 Changes in Version 1.0-01
   o spreml-type models now output object$sigma2, i.e. sigma2e
-  o spreml calcumates sigma2mu on the basis of phi, if any, and sigma2.1 as sigma2e+sigma2mu	
+  o spreml calcumates sigma2mu on the basis of phi, if any, and sigma2.1 as sigma2e+sigma2mu
 
 Changes in Version 1.0-00
   o fixed prblem with spgm due to residuals of plm models now being pseries
@@ -45,7 +75,7 @@ Changes in Version 0.9-05
   o the call reported by spml is now, correctly, the user-level one instead of spreml' or spfeml's one
   o example(spml) now produces a fixed effects and a random effects example
   o the 'usaww' contiguity matrix for USA continental states has been fixed (Florida's neighbours were wrong) and documentation in usaww.Rd has been improved
-  o fixed the problem in fixed effects sarar model ML 
+  o fixed the problem in fixed effects sarar model ML
 Changes in Version 0.9-04
   o added visible vcov.splm method for interoperability with lmtest, car
 
@@ -72,16 +102,16 @@ Changes in Version 0.8-03
 
 Changes in Version 0.8-02
   o fixed the bsktest, now only formula methods and correct pvals
-	
+
 Changes in Version 0.8-01
   o added the spatial hausman test
   o deleted bsjk test and corrected the bsk tests
   o added spgm: general function that deals with all the GM estimators
-  o added the methodologies in Mutl and Pfaffermeyer (2011) and Piras (2011) 
+  o added the methodologies in Mutl and Pfaffermeyer (2011) and Piras (2011)
   for the estimation of the GM models sperrorgm and spsarargm
   o includes the following estimators: ivplm.w2sls, ivplm.b2sls, ivplm.ec2sls, ivplm.g2sls
-  along with ivsplm that is the wrapper to use them. 
-  
+  along with ivsplm that is the wrapper to use them.
+
 Changes in Version 0.2-04
   o dependency changed from kinship to bdsmatrix; removed require(kinship) from all functions
 
@@ -93,8 +123,6 @@ Changes in Version 0.2-01
 
 
   o spregm: modified to allow for additional endogenous variables and lag of the dependent variable
-  o Added spfegm 
+  o Added spfegm
   o Added spseml
-  o spsegm: improved substantially and now reads a list of formulas. 
- 
-  
+  o spsegm: improved substantially and now reads a list of formulas.

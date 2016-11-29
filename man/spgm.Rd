@@ -66,7 +66,7 @@ When both \code{spatial.error} and \code{lag} are \code{FALSE} the model reduces
 panel data model with an additional endogeneous variable. The function then uses \code{ivsplm} 
 to perform the Instrumental Variables and two-stage least squares for panel data model.  \code{method = "w2sls"} 
 corresponds to the fixed effects estimator, \code{method = "b2sls"} to the between effects model,
-\code{method = "g2sls"} to the GLS random effects model, and \code{method = "ec2sls"} to teh Baltagi's 
+\code{method = "g2sls"} to the GLS random effects model, and \code{method = "ec2sls"} to the Baltagi's 
 EC2SLS. 
 
 When \code{spatial.error} is \code{TRUE} and \code{lag} is \code{FALSE} the model is one with spatially autocorrelated

@@ -7,7 +7,7 @@ feerror<-function(env, beta,sige, effects, method,rho, legacy){
 	yt<-get("yt", envir = env)
 	xt<-get("xt", envir = env)	
 	N<-get("n", envir = env)
-	T<-get("T", envir = env)
+	time<-get("time", envir = env)
 	NT<-get("NT", envir = env)
 	k<-get("k", envir = env)
 	listw<-get("listw", envir = env)
@@ -16,14 +16,15 @@ feerror<-function(env, beta,sige, effects, method,rho, legacy){
 
 mx<-apply(x,2,mean)
 intercept<-mean(y)-mx%*%beta
+
 if (effects =="spfe"){
 	ysms<-get("ysms", envir = env)
 	xsms<-get("xsms", envir = env)
 
 	sige<-as.numeric(sige)
 	res.sfe <- as.matrix(ysms) - xsms %*% as.matrix(beta) - as.numeric(intercept)
-	xhat <- x %*% as.matrix(beta) + rep(res.sfe,T) + as.numeric(intercept)
-	res.var.sfe<- (sige / T)  + (as.numeric(sige)*(xsms%*% solve(crossprod(xt)) %*% t(xsms)))
+	xhat <- x %*% as.matrix(beta) + rep(res.sfe, time) + as.numeric(intercept)
+	res.var.sfe<- (sige / time)  + (as.numeric(sige)*(xsms%*% solve(crossprod(xt)) %*% t(xsms)))
 	res.se.sfe<-sqrt(diag(res.var.sfe))
 	res.t.sfe <- res.sfe / res.se.sfe 
 	res.se.con<-sqrt(as.numeric(sige) / NT + as.numeric(sige) * t(as.matrix(mx)) %*% 	solve(crossprod(xt)) %*% as.matrix(mx))
@@ -46,7 +47,7 @@ if (effects== "tpfe")	{
 	res.t.tfe <- res.tfe/res.se.tfe
 	res.se.con<-sqrt(as.numeric(sige) / NT + as.numeric(sige) * t(as.matrix(mx)) %*% 	solve(crossprod(xt)) %*% as.matrix(mx))
 	res.t.con <- as.numeric(intercept) / res.se.con
-	N.vars <- k + T
+	N.vars <- k + time
 		res.e <- y - xhat
 		FE.out<-list(res.tfe=res.tfe, res.se.tfe=res.se.tfe, intercept=intercept, res.se.con=res.se.con,xhat=xhat,N.vars=N.vars,res.e=res.e)
 		}
@@ -62,7 +63,7 @@ if (effects== "sptpfe"){
 	sige<-as.numeric(sige)
 	res.sfe <- as.matrix(ysms) - xsms %*% as.matrix(beta) - as.numeric(intercept)
 	res.tfe <- as.matrix(ytms) - xtms %*% as.matrix(beta) - as.numeric(intercept)
-		res.var.sfe<- (sige / T)  + (as.numeric(sige)*(xsms%*% solve(crossprod(xt)) %*% t(xsms)))
+		res.var.sfe<- (sige / time)  + (as.numeric(sige)*(xsms%*% solve(crossprod(xt)) %*% t(xsms)))
 	res.se.sfe <-sqrt(diag(res.var.sfe))
 	res.var.tfe <- (sige / N)  + (as.numeric(sige)*(xtms%*% solve(crossprod(xt)) %*% t(xtms)))
 	res.se.tfe<-sqrt(diag(res.var.tfe))
@@ -70,17 +71,17 @@ if (effects== "sptpfe"){
 	res.t.tfe <- res.tfe / res.se.tfe
 	res.se.con<-sqrt(as.numeric(sige) / NT + as.numeric(sige) * t(as.matrix(mx)) %*% solve(crossprod(xt)) %*% as.matrix(mx))
 	res.t.con <- as.numeric(intercept) / res.se.con
-	xhat<- x %*% as.matrix(beta) + rep(res.sfe,T) + rep(res.tfe,each=N) + as.numeric(intercept)
-	N.vars <- k + N + T - 1
+	xhat<- x %*% as.matrix(beta) + rep(res.sfe,time) + rep(res.tfe,each=N) + as.numeric(intercept)
+	N.vars <- k + N + time - 1
 	res.e <- y - xhat
 FE.out<-list(res.tfe=res.tfe, res.se.tfe=res.se.tfe, res.sfe=res.sfe, res.se.sfe=res.se.sfe, intercept=intercept, res.se.con=res.se.con,xhat=xhat,N.vars=N.vars,res.e=res.e)
 		}
 		
-if (effects=="pooled") {
-	xhat <-   x %*% as.matrix(beta)
-	res.e <- y - xhat
-	FE.out<-list(xhat=xhat,N.vars=k,res.e=res.e)
-	}
+# if (effects=="pooling") {
+	# xhat <-   x %*% as.matrix(beta)
+	# res.e <- y - xhat
+	# FE.out<-list(xhat=xhat,N.vars=k,res.e=res.e)
+	# }
 
 	yhat <- xhat
 	ywhat <-  xt %*% beta
@@ -105,7 +106,7 @@ felag<-function(env, beta,sige, effects, method, lambda, legacy, zero.policy){
 	yt<-get("yt", envir = env)
 	xt<-get("xt", envir = env)	
 	N<-get("n", envir = env)
-	T<-get("T", envir = env)
+	time<-get("time", envir = env)
 	NT<-get("NT", envir = env)
 	k<-get("k", envir = env)
 	listw<-get("listw", envir = env)
@@ -120,8 +121,8 @@ if (effects=="spfe"){
 	wysms<-get("wysms", envir = env)
 
 	res.sfe <- as.matrix(ysms) - as.matrix(wysms) *lambda - xsms %*% as.matrix(beta) - as.numeric(intercept)
-	xhat <- x %*% as.matrix(beta) + rep(res.sfe,T) + as.numeric(intercept)
-	res.var.sfe<- (sige / T)  + diag((as.numeric(sige)*(xsms%*% solve(crossprod(xt)) %*% t(xsms))))
+	xhat <- x %*% as.matrix(beta) + rep(res.sfe,time) + as.numeric(intercept)
+	res.var.sfe<- (sige / time)  + diag((as.numeric(sige)*(xsms%*% solve(crossprod(xt)) %*% t(xsms))))
 	res.se.sfe<-sqrt(res.var.sfe)
 	res.t.sfe <- res.sfe / res.se.sfe 
 	res.se.con<-sqrt(as.numeric(sige) / NT + as.numeric(sige) * t(as.matrix(mx)) %*% 	solve(crossprod(xt)) %*% as.matrix(mx))
@@ -143,11 +144,12 @@ if (effects== "tpfe")	{
 	res.t.tfe <- res.tfe/res.se.tfe
 	res.se.con<-sqrt(as.numeric(sige) / NT + as.numeric(sige) * t(as.matrix(mx)) %*% 	solve(crossprod(xt)) %*% as.matrix(mx))
 	res.t.con <- as.numeric(intercept) / res.se.con
-	N.vars <- k + T
+	N.vars <- k + time
 	res.e <- y - xhat - lambda * wy
 FE.out<-list(res.tfe=res.tfe, res.se.tfe=res.se.tfe, intercept=intercept, 	res.se.con=res.se.con,xhat=xhat,N.vars=N.vars,res.e=res.e)
 		}
 if (effects== "sptpfe"){
+
 	ysms<-get("ysms", envir = env)
 	xsms<-get("xsms", envir = env)
 	wysms<-get("wysms", envir = env)
@@ -158,7 +160,7 @@ if (effects== "sptpfe"){
 
 	res.sfe <- as.matrix(ysms) - as.matrix(wysms) * lambda - xsms %*% as.matrix(beta) - as.numeric(intercept)
 	res.tfe <- as.matrix(ytms) - as.matrix(wytms) * lambda - xtms %*% as.matrix(beta) - as.numeric(intercept)
-	res.var.sfe<- (sige / T)  + (as.numeric(sige)*(xsms%*% solve(crossprod(xt)) %*% t(xsms)))
+	res.var.sfe<- (sige / time)  + (as.numeric(sige)*(xsms%*% solve(crossprod(xt)) %*% t(xsms)))
 	res.se.sfe <-sqrt(diag(res.var.sfe))
 	res.var.tfe <- (sige / N)  + (as.numeric(sige)*(xtms%*% solve(crossprod(xt)) %*% t(xtms)))
 	res.se.tfe<-sqrt(diag(res.var.tfe))
@@ -166,16 +168,16 @@ if (effects== "sptpfe"){
 	res.t.tfe <- res.tfe / res.se.tfe
 	res.se.con<-sqrt(as.numeric(sige) / NT + as.numeric(sige) * t(as.matrix(mx)) %*% solve(crossprod(xt)) %*% as.matrix(mx))
 	res.t.con <- as.numeric(intercept) / res.se.con
-	xhat<- x %*% as.matrix(beta) + rep(res.sfe,T) + rep(res.tfe,each=N) + as.numeric(intercept)
-	N.vars <- k + N + T - 1
+	xhat<- x %*% as.matrix(beta) + rep(res.sfe,time) + rep(res.tfe,each=N) + as.numeric(intercept)
+	N.vars <- k + N + time - 1
 	res.e <- y - xhat - lambda * wy
 FE.out<-list(res.tfe=res.tfe, res.se.tfe=res.se.tfe, res.sfe=res.sfe, res.se.sfe=res.se.sfe, intercept=intercept, res.se.con=res.se.con,xhat=xhat,N.vars=N.vars,res.e=res.e)
 		}
-if (effects=="pooled") {
-	xhat <-   x %*% as.matrix(beta)
-	res.e <- y - xhat - lambda* wy
-	FE.out<-list(xhat=xhat,N.vars=k,res.e=res.e)
-	}
+# if (effects=="pooling") {
+	# xhat <-   x %*% as.matrix(beta)
+	# res.e <- y - xhat - lambda* wy
+	# FE.out<-list(xhat=xhat,N.vars=k,res.e=res.e)
+	# }
 
 if(legacy){
 	W <- listw2dgCMatrix(listw, zero.policy = zero.policy)
