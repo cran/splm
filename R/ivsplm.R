@@ -4,11 +4,17 @@ ivsplm <-function(formula,data=list(), index=NULL, endog = NULL, instruments= NU
 if(length(method) !=1 && effects == "fixed") method <- "w2sls" 	
 if(length(method) !=1 && effects == "random") method <- "ec2sls" 	
 		
- if(!is.null(index)) {
+ #if(!is.null(index)) {
     #require(plm)
-    data <- plm.data(data, index)
-    }
-  
+ #   data <- plm.data(data, index)
+ #   }
+
+ ## substituted module based on plm.data (deprecated)
+ ## with one based on pdata.frame
+  if(!("pdata.frame" %in% class(data))) {
+    data <- pdata.frame(data, index)
+  } 
+ 
   index <- data[,1]
   tindex <- data[,2]
 

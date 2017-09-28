@@ -1,3 +1,6 @@
+Changes in Version 1.4-7
+ o Moved '...' argument in slagres.R from mat2listw to lag.listw
+
 Changes in Version 1.4-6
  o Added slmtest() for the (locally robust) LM test of spatial lag sub spatial error or spatial error sub spatial lag; with methods for formula and plm.
 

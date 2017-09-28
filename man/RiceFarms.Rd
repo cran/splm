@@ -1,21 +1,24 @@
 \name{RiceFarms}
 \docType{data}
 \alias{RiceFarms}
-\title{Production of Rice in Indonesia}
+\title{Production of Rice in India }
 \description{
-  A panel of 171 observations
+  yearly observations of 171 farms
 
  \emph{number of observations} :  1026
 
- \emph{observation} :  farms
-
    \emph{country} :  Indonesia
+
+\emph{economic topic} : producer behavior
+
+\emph{econometrics topic} : error component
 
 }
 \usage{data(RiceFarms)}
 \format{A dataframe containing :
   \describe{
     \item{id}{the farm identifier}
+    \item{time}{the growing season}
     \item{size}{the total area cultivated with rice, measured in hectares}
     \item{status}{land status, on of \code{'owner'} (non sharecroppers, owner operators or leasholders or both), \code{'share'} (sharecroppers), \code{'mixed'} (mixed of the two previous status)}
     \item{varieties}{one of \code{'trad'} (traditional varieties), \code{'high'} (high yielding varieties) and \code{'mixed'} (mixed varieties)}
@@ -34,12 +37,18 @@
     \item{goutput}{gross output of rice in kg}
     \item{noutput}{net output, gross output minus harvesting cost (paid in terms of rice)}
     \item{price}{price of rough rice in Rupiah per kg}
-    \item{region}{one of six regions}
+    \item{region}{one of \code{'wargabinangun'}, \code{'langan'}, \code{'gunungwangi'}, \code{'malausma'}, \code{'sukaambit'}, \code{'ciwangi'}}
   }
 }
 \source{
-     Qu Feng and William C. Horrace, (2012) \dQuote{Alternative Measures of Technical Efficiency: Skew, Bias and Scale}, \emph{Journal of Applied Econometrics}, \bold{forthcoming}.
+    Journal of Applied Econometrics data archive : \url{http://jae.wiley.com/}.
 
 }
-\author{Yves Croissant}
+\references{
+     Qu Feng and William C. Horrace, (2012) \dQuote{Alternative Measures of Technical Efficiency: Skew, Bias and Scale}, \emph{Journal of Applied Econometrics}, \bold{forthcoming}.
+
+    Horrace, W.C.  and  P.  Schmidt (1996) \dQuote{Confidence statements for efficiency estimates from stochastic frontier models}, \emph{Journal of Productivity Analysis}, \bold{ 7}, 257--282.
+
+}
+
 \keyword{datasets}

@@ -18,6 +18,12 @@ function(x,...){
 function(x, data, index=NULL, listw,
          test=c("LMH","LM1","LM2","CLMlambda","CLMmu"),
          standardize=FALSE, method = "eigen", ...){
+
+  ## transform data if needed
+  if(!("pdata.frame" %in% class(data))) {
+    data <- pdata.frame(data, index)
+  }
+
   
 switch(match.arg(test), LM1 = {
     
@@ -57,10 +63,10 @@ function(formula, data, index=NULL, listw, standardize, ...){
     # if(standardize) stop("Standardized SLM1 test temporarily unavailable:
     # \n use 'standardize=FALSE' for LM1 test instead")
     
-  if(!is.null(index)) { ####can be deleted when using the wrapper
+  #if(!is.null(index)) { ####can be deleted when using the wrapper
     #require(plm)
-    data <- plm.data(data, index)
-    }
+  #  data <- plm.data(data, index)
+  #  }
 
 tr<-function(R) sum(diag(R))
 fun<-function(Q) tapply(Q,inde1,sum)
@@ -156,12 +162,13 @@ SLM1 <- ((G+1)- Ed1)/sqrt(Vd1)
 
 `slm2test` <-
 function(formula, data, index=NULL, listw, standardize, ...){
-    # if(standardize) stop("Standardized SLM2 test temporarily unavailable: \n use 'standardize=FALSE' for LM2 test instead")
-                                              
-  if(!is.null(index)) { 
+    # if(standardize) stop("Standardized SLM2 test temporarily unavailable: \n use 'standardize=FALSE' for LM2 test instead")                  
+
+
+  #if(!is.null(index)) { 
     #require(plm)
-    data <- plm.data(data, index)
-    }
+  #  data <- plm.data(data, index)
+  #  }
 
   index <- data[,1]
   tindex <- data[,2]
@@ -254,10 +261,11 @@ function(formula, data, index=NULL, listw, ...){
     ## depends on listw2dgCMatrix.R
   #require(ibdreg) # for mixed chisquare distribution
   # now imported
-  if(!is.null(index)) { ####can be deleted when using the wrapper
+
+  #if(!is.null(index)) { ####can be deleted when using the wrapper
     #require(plm)
-    data <- plm.data(data, index)
-    }
+  #  data <- plm.data(data, index)
+  #  }
 
   index <- data[,1]
   tindex <- data[,2]
@@ -353,9 +361,9 @@ function(formula, data, index=NULL, listw, method, ...){
     ml <- spreml(formula=formula, data=data, index=index, w=listw,
                  errors="sem", lag=F)
                                                         
-	 if(!is.null(index)) {
-    data <- plm.data(data, index)
-    }
+    #if(!is.null(index)) {
+    # data <- plm.data(data, index)
+    #}
 
   index <- data[,1]
   tindex <- data[,2]
@@ -458,16 +466,20 @@ clmltest <- function (formula, data, index = NULL, listw)
 {
    # ml <- spreml(formula, data = data, w = listw2mat(listw),
    #     errors = "re")
-    if (!is.null(index)) {
+    #if (!is.null(index)) {
         #require(plm)
-        data <- plm.data(data, index)
-    }
+    #    data <- plm.data(data, index)
+    #}
     index <- data[, 1]
     tindex <- data[, 2]
     data$tindex <- tindex
 
-	ml <- lme(formula, data, random=~1|tindex)
+	#ml <- lme(formula, data, random=~1|tindex)
 
+    ## modified to get rid of lme problems with "inner_perc_table" 
+    ml <- spreml(formula=formula, data=data, index=index, w=listw,
+                 errors="re", lag=F)
+    
     X <- model.matrix(formula, data = data)
     y <- model.response(model.frame(formula, data = data))
     names(index) <- row.names(data)

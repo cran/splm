@@ -10,10 +10,9 @@ function(x, data, index=NULL, listw, test=c("C.1","C.2","C.3","J"), ...){
   }
 
   ## transform data if needed
-  if(!is.null(index)) {
-    #require(plm)
-    data <- plm.data(data, index)
-    }
+  if(!("pdata.frame" %in% class(data))) {
+    data <- pdata.frame(data, index)
+  }
 
   gindex <- dimnames(data)[[2]][1]
   tindex <- dimnames(data)[[2]][2]

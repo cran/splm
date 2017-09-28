@@ -31,7 +31,7 @@ slagres <- function(x, tind, listw, maxlag, ...) {
     ## all calculations done inside here
     ## check and if necessary transform
     if(class(listw)[1]=="matrix") {
-        listw <- mat2listw(listw, ...)
+        listw <- mat2listw(listw)
     }
     ## if maxlag>1 then make higher-order W
     if(maxlag>1) {
@@ -47,7 +47,7 @@ slagres <- function(x, tind, listw, maxlag, ...) {
     for(t. in 1:length(tunind)) {
         tpos <- tind==tunind[t.]
         xt <- x[tpos]
-        wxt <- lag.listw(listw, xt)
+        wxt <- lag.listw(listw, xt, ...)
         wx[tpos] <- wxt
     }
     return(wx)

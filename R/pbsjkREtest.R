@@ -20,11 +20,11 @@ pbsjkREtest<-function(formula, data, w, index=NULL, ...) {
 
   #require(nlme) # not needed any more
 
-  ## reorder data if needed
-  if(!is.null(index)) {
+  ## reorder data if needed # done already
+  #if(!is.null(index)) {
     #require(plm)
-    data <- plm.data(data, index)
-    }
+  #  data <- plm.data(data, index)
+  #  }
 
   gindex <- data[,1]
   tindex <- data[,2]

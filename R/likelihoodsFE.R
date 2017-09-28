@@ -22,7 +22,7 @@ ret <- - (NT/2)*log(Nsig)  + time * ldet
 }
 
 
-splaglm<-function(env, zero.policy = zero.policy, interval = interval, con = con, llprof = llprof, tol.solve= tol.solve, Hess = Hess, method = method, LeeYu = LeeYu, effects = effects){
+splaglm <- function(env, zero.policy = zero.policy, interval = interval, con = con, llprof = llprof, tol.solve= tol.solve, Hess = Hess, method = method, LeeYu = LeeYu, effects = effects){
 
 xt <- get("xt", envir = env)
 yt <- get("yt", envir = env)
@@ -60,6 +60,7 @@ opt <- optimize(conclikpan,  interval = interval1, maximum = TRUE, env = env, to
 
         names(lambda) <- "lambda"
         LL <- opt$objective
+        # print(LL)
         optres <- opt
 
 	lm.lag <- lm((yt - lambda * wyt) ~ xt - 1)
@@ -78,7 +79,17 @@ if(LeeYu && effects == "tpfe") s2 <- (n/(n-1)) * as.numeric(s2)
 	names(betas) <- colnames(xt)
 	coefs <- c(lambda, betas)
 
-
+###see Debarsy's mail in February 2017
+    SSE <- sar_hess_sse_panel(lambda, betas, env)
+    s2 <- SSE /n   
+    ldet <- do_ldet(lambda, env, which = 1)
+    ens <- (time * ldet  - ((n*time/2) * log(2 * pi)) - (n*time/2) * log(s2) - 
+        (1/(2 * s2)) * SSE)
+     # print(ens)
+     
+ # LL <- - (NT/2)*log(SSE)  + time * ldet  
+# print(LL)
+##########
 if(LeeYu && effects == "sptpfe"){
 	   
 	    tr <- function(A) sum(diag(A))
@@ -196,7 +207,7 @@ else asyv <- asyv
 
 
  
-    	return<-list(coeff = betas, lambda = lambda, s2 = s2, rest.se = rest.se, lambda.se = lambda.se, sig.se = sig.se, asyvar1 = asyvar1,  residuals = r, asyv = asyv)
+    	return<-list(coeff = betas, lambda = lambda, s2 = s2, rest.se = rest.se, lambda.se = lambda.se, sig.se = sig.se, asyvar1 = asyvar1,  residuals = r, asyv = asyv, ll =  ens)
 } 
 
 

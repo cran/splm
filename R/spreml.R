@@ -8,10 +8,10 @@ function (formula, data, index = NULL, w, w2=w, lag = FALSE,
 {
 
     trace <- as.numeric(!quiet)
-    if (!is.null(index)) {
+    #if (!is.null(index)) { # done below
         #require(plm)
-        data <- plm.data(data, index)
-    }
+    #    data <- plm.data(data, index)
+    #}
     #index <- data[, 1]
     #tindex <- data[, 2]
     cl <- match.call()
