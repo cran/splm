@@ -1,5 +1,5 @@
 ab2bac52874aa025d65f666c1621624b *ChangeLog
-fdc072c4acc90a80dfbc5e249780aef8 *DESCRIPTION
+bf70eba28599c2cf5d25b5fd8d8e5f59 *DESCRIPTION
 72fe0ca6dbc077ee42b8c84242fa7bdf *NAMESPACE
 43f6d7ba00fbf900484d2a839b28184e *R/REmod.R
 abce2458c17b274834a8ba7edf9aedf3 *R/bsjktest.R
@@ -41,7 +41,7 @@ f078890056aeac8a258f8a0cfd1f2d2a *R/semmod.R
 72f48e6c7509e2ed836df8b9d140efc3 *R/semsrREmod.R
 efffa65a5ca20b2df8306dce4cbbfe7a *R/semsrmod.R
 813cb87b2b8b8645210ca9c5020e3be5 *R/slag.R
-00a5f36d9890b6b25997c88bf979d90e *R/slmtest.R
+18eab3a47ddf954663a628a1ad54463c *R/slmtest.R
 be147f5876d566d48baf72dc8fb3633d *R/sparseBmethods.R
 139a8c0121be1562e7982fc672fcddea *R/spfeml.R
 7f4d73855067e917865c8522a909a631 *R/spgm.R
@@ -55,11 +55,11 @@ c72efd37e32b4e7c7243b2c581c64806 *R/spml.R
 595991a6d065d74ca4a7b3695ab26582 *R/tss.R
 5f195bb08f48eae5de71f31aa766d6ac *R/utilities_GM.R
 5b4f26cd64634bad0247f2898c2703d4 *R/vcov.splm.R
-2094951ea411a9852aa97abf8ca54494 *data/Insurance.rda
-63ff780e2657049637b81fa4f45b3c80 *data/RiceFarms.rda
-98316d3d2d00db9e6bada9326fd339cf *data/itaww.rda
-45625dbaf3a77e74c43dae35f0444096 *data/riceww.rda
-1777b013dccef8c5e9334a0f6d6a781b *data/usaww.rda
+a34cae1634e227218f0e65e9fe5b4f8c *data/Insurance.rda
+880cb19cf090b35ec08d06779fc19ed7 *data/RiceFarms.rda
+d5f327a17b428f543879370b5211c7de *data/itaww.rda
+f82e6f8dd77cbeca20f3aa92ffc3727a *data/riceww.rda
+dcdfa0d5385a6d28f1836f975231eafb *data/usaww.rda
 9f3796b3f0740b01cde8108f91b1b89f *inst/CITATION
 0830f508ca280e37912af8140e0706c7 *man/Insurance.Rd
 ad2b472e3d3d72fa7277ed49fc8c9475 *man/RiceFarms.Rd

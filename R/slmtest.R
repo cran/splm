@@ -36,7 +36,7 @@ slmtestres <- function(mod, listw, test) {
     NT <- pdim(mod)$nT$N
 
     X <- model.matrix(mod)
-    y <- pmodel.response(mod)
+    y <- as.numeric(pmodel.response(mod))
     hatY <- X %*% coef(mod)
 
     ## check w or listw and in case transform to matrix
@@ -63,7 +63,7 @@ slmtestres <- function(mod, listw, test) {
     Whaty <- bigW %*% hatY
 
     ## extract residuals as a vector (no pseries features)
-    e <- mod$residuals
+    e <- as.numeric(mod$residuals)
 
     sigma2 <- crossprod(e)/NT
 
