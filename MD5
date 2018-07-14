@@ -1,5 +1,5 @@
-ab2bac52874aa025d65f666c1621624b *ChangeLog
-bf70eba28599c2cf5d25b5fd8d8e5f59 *DESCRIPTION
+1e1283c37b93f6e1a216ac52dfcc725a *ChangeLog
+7b384d987c719323e12fc1639ab2a112 *DESCRIPTION
 72fe0ca6dbc077ee42b8c84242fa7bdf *NAMESPACE
 43f6d7ba00fbf900484d2a839b28184e *R/REmod.R
 abce2458c17b274834a8ba7edf9aedf3 *R/bsjktest.R
@@ -12,7 +12,7 @@ c9612dc563f103f14453f29724e9aae9 *R/ivplm.b2sls.R
 983de731875200660b6d1d50c55666fb *R/ivplm.g2sls.R
 0badeff02eee93aa30c3191ef95bf74c *R/ivplm.w2sls.R
 47160594c58524d5446e810e82bf9576 *R/ivsplm.R
-e048663655c8d0d2e535f52a78b80caf *R/likelihoodsFE.R
+faf94ab0228fb4a3aaabbfb56bb405ef *R/likelihoodsFE.R
 450c20b299cb46abb5926f502b98cd8e *R/listw2dgCMatrix.R
 1961482245f5a272b9f8bbd006bda0ee *R/lrtest.splm.R
 1b3fbb07ea4131dd4a023bfcb5a9a567 *R/nonexportedSpdepFuns.R
@@ -55,11 +55,11 @@ c72efd37e32b4e7c7243b2c581c64806 *R/spml.R
 595991a6d065d74ca4a7b3695ab26582 *R/tss.R
 5f195bb08f48eae5de71f31aa766d6ac *R/utilities_GM.R
 5b4f26cd64634bad0247f2898c2703d4 *R/vcov.splm.R
-a34cae1634e227218f0e65e9fe5b4f8c *data/Insurance.rda
-880cb19cf090b35ec08d06779fc19ed7 *data/RiceFarms.rda
-d5f327a17b428f543879370b5211c7de *data/itaww.rda
-f82e6f8dd77cbeca20f3aa92ffc3727a *data/riceww.rda
-dcdfa0d5385a6d28f1836f975231eafb *data/usaww.rda
+91c44b3ba79e69b95f8d4d0c6f2d92b9 *data/Insurance.rda
+9e1c79fb0b75b39c9512f576b21fc55f *data/RiceFarms.rda
+7d0b65f8cbae94df0615967453da3bc1 *data/itaww.rda
+372291fa11519d7dcd2c17f908290548 *data/riceww.rda
+249008755dd5c209d1b1cfb63ee63c2b *data/usaww.rda
 9f3796b3f0740b01cde8108f91b1b89f *inst/CITATION
 0830f508ca280e37912af8140e0706c7 *man/Insurance.Rd
 ad2b472e3d3d72fa7277ed49fc8c9475 *man/RiceFarms.Rd

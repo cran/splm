@@ -70,21 +70,42 @@ opt <- optimize(conclikpan,  interval = interval1, maximum = TRUE, env = env, to
     names(r) <- names(fit)
     SSE <- crossprod(residuals(lm.lag))
     s2 <- as.numeric(SSE)/NT
-
-if(LeeYu && effects == "spfe") s2 <- (time/(time-1)) * as.numeric(s2)	
-if(LeeYu && effects == "tpfe") s2 <- (n/(n-1)) * as.numeric(s2)	
-
-	betas <- coefficients(lm.lag)
-	 # betas <- b0 - lambda*b1
-	names(betas) <- colnames(xt)
-	coefs <- c(lambda, betas)
-
-###see Debarsy's mail in February 2017
-    SSE <- sar_hess_sse_panel(lambda, betas, env)
-    s2 <- SSE /n   
     ldet <- do_ldet(lambda, env, which = 1)
-    ens <- (time * ldet  - ((n*time/2) * log(2 * pi)) - (n*time/2) * log(s2) - 
-        (1/(2 * s2)) * SSE)
+    
+    betas <- coefficients(lm.lag)
+    names(betas) <- colnames(xt)
+    coefs <- c(lambda, betas)
+    ens <- as.numeric((time * ldet  - ((n*time/2) * log(2 * pi)) - (n*time/2) * log(s2) - 1/(2 * s2) * SSE))  
+    #print(SSE)
+if(LeeYu && effects == "spfe") {
+  s2 <- (time/(time-1)) * as.numeric(s2)	
+  ens <- as.numeric(((time-1) * ldet  - ((n*(time-1)/2) * log(2 * pi)) - (n*(time-1)/2) * log(s2) - 1/(2 * s2) * SSE))
+} 
+  
+if(LeeYu && effects == "tpfe"){
+  s2 <- (n/(n-1)) * as.numeric(s2)	
+  ens <-as.numeric( (time * ldet  - (((n-1)*time/2) * log(2 * pi)) - ((n-1)*time/2) * log(s2) - 1/(2 * s2) * SSE)  )
+} 
+    
+  
+    
+###see Debarsy's mail in February 2017
+    #SSE <- sar_hess_sse_panel(lambda, betas, env)
+    #s2 <- SSE /(n*time)   
+  
+   # print(SSE)
+   # print(s2)
+  #  print(ldet)
+   # print(time)
+    #print(n)
+    
+    #time = time -1
+    
+   
+  #  nt1 <- -(n*time)/2
+ #   print(nt1)
+    #fr*log(2*pi*sige_sar)+T_1*ldet_sar-1/(2*sige_sar)*sres_sar2
+#ens <- time * ldet  +  nt1* log(2 * pi * s2) - 1/(2 * s2) * SSE
      # print(ens)
      
  # LL <- - (NT/2)*log(SSE)  + time * ldet  

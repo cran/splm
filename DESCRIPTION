@@ -1,11 +1,11 @@
 Package: splm
 Title: Econometric Models for Spatial Panel Data
-Version: 1.4-10
-Date: 2017-11-2
+Version: 1.4-11
+Date: 2018-07-13
 Authors@R: c(person(given = "Giovanni", family = "Millo", role = c("aut", "cre"), email = "giovanni.millo@generali.com"),
              person(given = "Gianfranco", family = "Piras", role = c("aut"), email = "gpiras@mac.com"))
 Author: Giovanni Millo [aut, cre],
-	Gianfranco Piras [aut]
+  Gianfranco Piras [aut]
 Maintainer: Giovanni Millo <giovanni.millo@generali.com>
 Description: ML and GM estimation and diagnostic testing of econometric models for spatial panel data.
 Depends: R (>= 2.12.0), spdep
@@ -13,7 +13,10 @@ Imports: plm, maxLik, MASS, bdsmatrix, ibdreg, nlme, Matrix, spam,
         methods
 License: GPL-2
 LazyLoad: yes
-NeedsCompilation: no
-Packaged: 2017-11-06 23:02:13 UTC; root
 Repository: CRAN
-Date/Publication: 2017-11-06 23:20:50 UTC
+Repository/R-Forge/Project: splm
+Repository/R-Forge/Revision: 220
+Repository/R-Forge/DateTimeStamp: 2018-07-13 13:05:47
+Date/Publication: 2018-07-14 08:50:02 UTC
+NeedsCompilation: no
+Packaged: 2018-07-13 13:10:09 UTC; rforge
