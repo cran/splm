@@ -40,8 +40,8 @@ con[(namc <- names(control))] <- control
     data <- pdata.frame(data, index)
   }
 
-  index <- data[,1]
-  tindex <- data[,2]
+  index <- index(data)[,1]
+  tindex <- index(data)[,2]
 
 	  ## record call
         ## now passed on from spml() but to be sure:
