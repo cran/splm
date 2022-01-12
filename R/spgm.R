@@ -1,7 +1,10 @@
 `spgm` <-
 function(formula, data=list(), index=NULL, listw =NULL, listw2 = NULL,
-         model=c("within","random"), lag = FALSE, spatial.error=TRUE,
-         moments = c("initial", "weights", "fullweights"), endog = NULL, instruments= NULL, lag.instruments = FALSE, verbose = FALSE, method = c("w2sls", "b2sls", "g2sls", "ec2sls"), control = list(), optim.method = "nlminb", pars = NULL){
+         model = c("within","random"), lag = FALSE, spatial.error=TRUE,
+         moments = c("initial", "weights", "fullweights"), endog = NULL, 
+         instruments= NULL, lag.instruments = FALSE, verbose = FALSE, 
+         method = c("w2sls", "b2sls", "g2sls", "ec2sls"), control = list(), 
+         optim.method = "nlminb", pars = NULL){
 
 ## translation for uniformity
 effects <- switch(match.arg(model), within="fixed", random="random")
@@ -41,8 +44,9 @@ twow <- TRUE
 
 
 
-	
-if(model == "within" && attr(terms(formula), "intercept") == 0 ) formula <- as.formula(paste(attr(terms(formula),"variables")[1+attr(terms(formula),"response")], paste(attr(terms(formula),"term.labels"), collapse="+"), sep="~"))
+if(length(model) !=1) model <- "within" 		
+if((model == "within") && ((attr(terms(formula), "intercept"))==1 )) 
+  formula <- as.formula(paste(attr(terms(formula),"variables")[1+attr(terms(formula),"response")], paste(attr(terms(formula),"term.labels"), collapse="+"), sep="~"))
 
 	
 
@@ -50,9 +54,12 @@ if(model == "within" && attr(terms(formula), "intercept") == 0 ) formula <- as.f
 cl<-match.call()
 if(!spatial.error){
 	
-	results<-ivsplm(formula = formula, effects = effects, data=data, index = index, endog = endog, instruments = instruments, method = method, lag = lag, listw = listw, lag.instruments = lag.instruments)
+	results<-ivsplm(formula = formula, effects = effects, 
+	                data=data, index = index, endog = endog, 
+	                instruments = instruments, method = method, 
+	                lag = lag, listw = listw, lag.instruments = lag.instruments)
 	
-	results$type <- "lag GM"
+	
 	}
 
 
@@ -60,17 +67,31 @@ if(!spatial.error){
 else{
 	
 	
-if(!lag) results <- sperrorgm(formula = formula, data = data, index = index, listw = listw, moments = moments, endog = endog, instruments = instruments, verbose = verbose, effects = effects, control = control, lag.instruments = lag.instruments, optim.method = optim.method, pars = pars)
+if(!lag) results <- sperrorgm(formula = formula, data = data, index = index, 
+                              listw = listw, moments = moments, endog = endog, 
+                              instruments = instruments, verbose = verbose, 
+                              effects = effects, control = control, 
+                              lag.instruments = lag.instruments, 
+                              optim.method = optim.method, pars = pars)
 #, initial.GMerror = initial.GMerror
 
-else results <- spsarargm(formula = formula, data = data, index = index, listw = listw, listw2 = listw2,  moments = moments, lag = lag, endog = endog, instruments = instruments, verbose = verbose, effects = effects, control = control, lag.instruments = lag.instruments, optim.method = optim.method, pars = pars, twow = twow)
+else results <- spsarargm(formula = formula, data = data, index = index, 
+                          listw = listw, listw2 = listw2,  
+                          moments = moments, lag = lag, endog = endog, 
+                          instruments = instruments, verbose = verbose, 
+                          effects = effects, control = control, 
+                          lag.instruments = lag.instruments, 
+                          optim.method = optim.method, pars = pars, twow = twow)
 
 	}
-
+#results$lag <- lag
+#results$error <- error
 results$call <- cl
 results$ef.sph<- effects
 results$legacy <- c(lag, spatial.error)
 results$endog <- endog
+results$est.meth <- "GM"
+class(results) <- c("splm")
 results
 
 }
@@ -161,7 +182,7 @@ else	biv<-biv
 
 
 
-        result <- list(coefficients = biv, var = varb, sse = sse, 
+        result <- list(coefficients = biv, vcov = varb, sse = sse, 
             residuals = as.numeric(ehat), df = df, Zp = Zp, readout = readout)
     
     result
@@ -169,7 +190,13 @@ else	biv<-biv
 
 
 
-sperrorgm<-function(formula, data = list(), index = NULL, listw , moments = c("initial","weights","fullweights"), endog = NULL, instruments = NULL, verbose = FALSE, effects = c("fixed","random"), control = list(), lag.instruments = lag.instruments, optim.method = optim.method, pars = pars ){
+sperrorgm<-function(formula, data = list(), 
+                    index = NULL, listw , 
+                    moments = c("initial","weights","fullweights"), 
+                    endog = NULL, instruments = NULL, verbose = FALSE, 
+                    effects = c("fixed","random"), control = list(), 
+                    lag.instruments = lag.instruments, 
+                    optim.method = optim.method, pars = pars ){
 
 effects<-match.arg(effects)
 moments<-match.arg(moments)
@@ -224,7 +251,7 @@ Ws <- kronecker(I_T, listw)
 
 if(!is.null(endog)){
 	endog <- as.matrix(lm(endog, data, na.action = na.fail, method = "model.frame"))
-if(is.null(instruments)) stop("No instruments specified  for the additional variable")
+if(is.null(instruments)) stop("No instruments specified  for the additional endogenous variable")
 else instruments <- as.matrix(lm(instruments, data, na.action = na.fail, method = "model.frame"))	
 	}
 
@@ -253,7 +280,9 @@ ywithin <- panel.transformations(y, indic, type= "within")
  result <- lm(ywithin ~ Xwithin[,-del] -1)
 }	
 
-else 	result <- ivplm.w2sls(Y = y, X =x, H = instruments, endog = endog, lag = FALSE, listw = Ws, lag.instruments = lag.instruments, T, N, NT)
+else 	result <- ivplm.w2sls(Y = y, X =x, H = instruments, endog = endog, 
+                            lag = FALSE, listw = Ws, 
+                            lag.instruments = lag.instruments, T, N, NT)
 
 res <- as.matrix(residuals(result)) 
 
@@ -270,9 +299,12 @@ else    	        v.init <- result$sigmav
 	pars <- c(r.init, v.init)	
 }
 
-if (optim.method == "nlminb") estim1 <- nlminb(pars, arg, v = Gg, verbose = verbose, control = control, lower=c(-0.999,0), upper=c(0.999, Inf))
+if (optim.method == "nlminb") estim1 <- nlminb(pars, arg, v = Gg,
+                                               verbose = verbose, control = control, 
+                                               lower=c(-0.999,0), upper=c(0.999, Inf))
 
-else estim1 <- optim(pars, arg, v = Gg, verbose = verbose, control = control, method = optim.method)
+else estim1 <- optim(pars, arg, v = Gg, verbose = verbose, control = control, 
+                     method = optim.method)
 
 	finrho=estim1$par[1]
 	 finsigmaV=estim1$par[2]
@@ -294,8 +326,8 @@ else estim1 <- optim(pars, arg, v = Gg, verbose = verbose, control = control, me
 
 if (is.null(endog)){
 
-result<-lm(as.matrix(yf)~as.matrix(xf)-1)
-vcov<-vcov(result)
+result <- lm(as.matrix(yf)~as.matrix(xf)-1)
+vcov <- vcov(result)
 betaGLS <- coefficients(result)
 
 	names(betaGLS)<-colnames(xf)
@@ -305,14 +337,12 @@ betaGLS <- coefficients(result)
   colnames(errcomp)<-"Estimate"
    model.data <- data.frame(cbind(y,x[,-1]))
 
-  type <- "fixed effects GM"
+  type <- "Spatial fixed effects error model (GM estimation)"
     spmod <- list(coefficients= betaGLS, errcomp=errcomp,
                 vcov=vcov, vcov.errcomp=NULL,
                 residuals=residuals(result), fitted.values=(y-as.vector(residuals(result))),
-                sigma2=crossprod(residuals(result))/result$df.residual, type=type, rho=errcomp, model=model.data, logLik=NULL)
-  class(spmod) <- "splm"
-  return(spmod)
-
+                sigma2=crossprod(residuals(result))/result$df.residual, 
+                type=type, rho=errcomp, model=model.data, logLik=NULL)
 	
 	}
 
@@ -320,8 +350,7 @@ else{
 	
    endogl <- as.matrix(Ws %*% endog)
    endogt <- endog - finrho* endogl
-
-endogf<-panel.transformations(endogt,indic, type= "within")
+   endogf<-panel.transformations(endogt,indic, type= "within")
 
   instwithin <- result$Hwithin
  # instwithin<-cbind(xf, wxf, instwithin)
@@ -344,19 +373,18 @@ endogf<-panel.transformations(endogt,indic, type= "within")
   names(betaGLS) <- nam.beta
   errcomp<-rbind(finrho,finsigmaV)
   nam.errcomp <- c("rho","sigma^2_v")
+  rownames(errcomp) <- nam.errcomp
+  colnames(errcomp)<-"Estimate"
    model.data <- data.frame(cbind(y,x[,-1]))
 
-  type <- "fixed effects GM"
+  type <- "Spatial fixed effects error model with additional endogenous variables (GM estimation)"
     spmod <- list(coefficients=betaGLS, errcomp=  errcomp,
                 vcov=covbeta, vcov.errcomp=NULL,
                 residuals=as.vector(egls), fitted.values=fv,
-                sigma2=SGLS, type=type, rho=errcomp[1], model=model.data, logLik=NULL)
-  class(spmod) <- "splm"
-  return(spmod)
-	
-	
+                sigma2=SGLS, type=type, rho=errcomp, model=model.data, sigmav = errcomp[2] , logLik=NULL)
+  
 	}
- return(spmod)
+
 		},
 		
 	random = {
@@ -377,8 +405,12 @@ Gg<-fs(Ws,res,N,T)
 }
 
 
- if (optim.method == "nlminb") estim1 <- nlminb(pars, arg, v = Gg, verbose = verbose, control = control, lower=c(-0.999,0), upper=c(0.999,Inf))
-else estim1 <- optim(pars, arg, v = Gg, verbose = verbose, control = control, method = optim.method)
+ if (optim.method == "nlminb") estim1 <- nlminb(pars, arg, v = Gg, 
+                                                verbose = verbose, 
+                                                control = control, 
+                                                lower=c(-0.999,0), upper=c(0.999,Inf))
+else estim1 <- optim(pars, arg, v = Gg, verbose = verbose, 
+                     control = control, method = optim.method)
 
 urub<-res- estim1$par[1]*Gg$ub
 Q1urQ1ub<-Gg$Q1u - estim1$par[1]*Gg$Q1ub
@@ -511,7 +543,7 @@ xt <- x-finrho*xl
  
 ytmt<-tapply(yt, indic, mean)
 ytNT<-rep(ytmt, T)
-yf<-(yt - theta*ytNT)
+yf<-(yt - as.numeric(theta)*ytNT)
 
 dm1<- function(A) rep(unlist(tapply(A, indic, mean, simplify=TRUE)), T)
 xtNT<-apply(xt,2,dm1)
@@ -540,14 +572,13 @@ if (is.null(endog)){
   colnames(errcomp)<-"Estimate"
 model.data <- data.frame(cbind(y,x))
 sigma2 <- SGLS
-  type <- "random effects GM"
+  type <- "Spatial random effects error model (GM estimation)"
     spmod <- list(coefficients=betaGLS, errcomp=errcomp,
                 vcov=covbeta, vcov.errcomp=NULL,
                 residuals=as.vector(egls), fitted.values=fv,
                 sigma2=sigma2,type=type, rho=errcomp, model=model.data,
                 call=cl, logLik=NULL, coy=yt, cox=xt, rhs=k)
-  class(spmod) <- "splm"
-  return(spmod)
+  
 
 	}
 
@@ -593,14 +624,12 @@ for (i in 1:ncol(instbetween)) instbetweennt[,i]<-rep(instbetween[,i], T)
   colnames(errcomp)<-"Estimate"
 model.data <- data.frame(cbind(y,x))
 sigma2 <- SGLS
-  type <- "random effects GM"
+  type <- "Spatial random effects error model with additional endogenous variables (GM estimation)"
     spmod <- list(coefficients=betaGLS, errcomp=errcomp,
                 vcov=covbeta, vcov.errcomp=NULL,
                 residuals=as.vector(egls), fitted.values=fv,
                 sigma2=sigma2,type=type, rho=errcomp, model=model.data,
                 call=cl, logLik=NULL, coy=yt, cox=xt, rhs=k)
-  class(spmod) <- "splm"
-  return(spmod)
 
 }
 
@@ -618,44 +647,13 @@ return(spmod)
 
 
 
-# Hmatrices <- function(Ws, x, Xwithin, Xbetween, del, delb, NT){
-	
-# WX <- as.matrix(Ws %*% x)
-# WWX <-as.matrix(Ws %*% WX)
-# WX <- WX[,-del]
-# WWX <- WWX[,-del]
-# HX <- cbind(WX, WWX)
-
-# WXwithin <- as.matrix(Ws %*% Xwithin)
-# WWXwithin <- as.matrix(Ws %*% WXwithin)
-# WXwithin<-WXwithin[,-del]
-# WWXwithin<-WWXwithin[,-del]
-
-
-# # spms <- function(q) tapply(q, indic, mean)
-
-# Xbetweennt<-matrix(,NT, ncol(Xbetween))
-# for (i in 1:ncol(Xbetween)) Xbetweennt[,i]<-rep(Xbetween[,i], T)
-# if (colnames(x)[1] == "(Intercept)") Xbetweennt <- Xbetweennt[,-1]
-
-
-# WXbetween <- as.matrix(Ws %*% Xbetweennt)
-# if(length(delb)==0) WXbetween<-WXbetween
-# else WXbetween<-WXbetween[,-delb]
-# WWXbetween <- as.matrix(Ws %*% WXbetween)
-# if(length(delb)==0) WWXbetween<-WWXbetween
-# else WWXbetween<-WWXbetween[,-delb]
-
-# Hwithin<-cbind(Xwithin[,-del],WXwithin, WWXwithin)
-# Hbetween<-cbind(1, Xbetweennt,WXbetween, WWXbetween)
-# Hgls<-cbind(1, Hwithin, Hbetween[,-1])
-
-# Hmatr <- list(Hwithin, Hbetween, Hgls)
-
-# }
-
-
-spsarargm<-function(formula, data = list(), index = NULL, listw, listw2 = NULL, moments = c("initial", "weights", "fullweights"), lag= FALSE, endog = NULL, instruments = NULL, verbose = FALSE, effects = c("fixed","random"), control = list(), lag.instruments = lag.instruments, optim.method = optim.method, pars = pars, twow ){
+spsarargm<-function(formula, data = list(), 
+                    index = NULL, listw, listw2 = NULL, 
+                    moments = c("initial", "weights", "fullweights"), 
+                    lag= FALSE, endog = NULL, instruments = NULL, 
+                    verbose = FALSE, effects = c("fixed","random"), 
+                    control = list(), lag.instruments = lag.instruments, 
+                    optim.method = optim.method, pars = pars, twow ){
 
 
 effects<-match.arg(effects)
@@ -715,7 +713,7 @@ listw2nn <- Ws2[1:N, 1:N]
 
 if(!is.null(endog)){
 	endog <- as.matrix(lm(endog, data, na.action = na.fail, method = "model.frame"))
-if(is.null(instruments)) stop("No instruments specified  for the additional variable")
+if(is.null(instruments)) stop("No instruments specified  for the additional endogenous variables")
 else instruments <- as.matrix(lm(instruments, data, na.action = na.fail, method = "model.frame"))	
 	}
 
@@ -814,14 +812,12 @@ model.fit <- spgm.tsls(yf, wyf, xf, Hinst =  Hwithin, instr = TRUE)
   rownames(errcomp) <- nam.errcomp
   colnames(errcomp)<-"Estimate"
 model.data <- data.frame(cbind(y,x))
-
-  type <- "fixed effects GM"
+#print(betaGLS)
+  type <- "Spatial fixed effects  SARAR model (GM estimation)"
     spmod <- list(coefficients=betaGLS, errcomp=errcomp,
                 vcov=covbeta, vcov.errcomp=NULL,
                 residuals=as.numeric(egls), fitted.values=fv,
-                sigma2=SGLS,type=type, rho=errcomp, model=model.data, logLik=NULL, coy=yt, cox=xt, rhs=k)
-  class(spmod) <- "splm"
-  return(spmod)
+                sigma2=SGLS,type=type, rho=errcomp, model=model.data, logLik=NULL, coy=yt, cox=xt, rhs=k, type = type)
 
 	}
 
@@ -854,15 +850,12 @@ model.fit <- spgm.tsls(yf, yend, xf, Hinst = Hwithin, instr = TRUE)
   colnames(errcomp)<-"Estimate"
 model.data <- data.frame(cbind(y,x))
 
-  type <- "fixed effects GM"
+  type <- "Spatial fixed effects SARAR model with additional endogenous variables (GM estimation)"
     spmod <- list(coefficients=betaGLS, errcomp=  errcomp,
                 vcov=  covbeta, vcov.errcomp=NULL,
                 residuals=as.numeric(egls), fitted.values=fv,
-                sigma2=SGLS,type=type, rho=errcomp, model=model.data, logLik=NULL, coy=yt, cox=xt, rhs=k)
-  class(spmod) <- "splm"
-  return(spmod)
-	
-	
+                sigma2=SGLS,type=type, rho=errcomp, model=model.data, logLik=NULL, coy=yt, cox=xt, rhs=k, type = type)
+
 	}
 
 		},
@@ -973,7 +966,7 @@ else estim3 <-optim(pars2, arg2, v = Ggw, T = T, ss= estim1$par[2], SS=finsigma1
 
   ytmt<-tapply(yt, indic, mean)
   ytNT<-rep(ytmt, T)
-  yf<-(yt - theta*ytNT)
+  yf<-(yt - as.numeric(theta)*ytNT)
   
   dm1<- function(A) rep(unlist(tapply(A, indic, mean, simplify=TRUE)), T)
   xtNT<-apply(xt,2,dm1)
@@ -1007,13 +1000,11 @@ names(betaGLS)[1]<-"lambda"
   colnames(errcomp)<-"Estimate"
 model.data <- data.frame(cbind(y,x))
 
-  type <- "random effects GM"
+  type <- "Spatial random effects SARAR model (GM estimation)"
     spmod <- list(coefficients=betaGLS, errcomp=errcomp,
                 vcov=covbeta, vcov.errcomp=NULL,
                 residuals=as.numeric(egls), fitted.values=fv,
-                sigma2=SGLS,type=type, rho=errcomp, model=model.data, logLik=NULL, coy=yt, cox=xt, rhs=k)
-  class(spmod) <- "splm"
-  return(spmod)
+                sigma2=SGLS,type=type, rho=errcomp, model=model.data, logLik=NULL, coy=yt, cox=xt, rhs=k, type = type)
 
 	}
 
@@ -1049,14 +1040,12 @@ names(betaGLS)[ncol(as.matrix(endog)) + 1 ]<-"lambda"
   colnames(errcomp)<-"Estimate"
 model.data <- data.frame(cbind(y,x))
 
-  type <- "random effects GM"
+  type <- "Spatial random effects SARAR model with additional endogenous variables (GM estimation)"
     spmod <- list(coefficients=betaGLS, errcomp=  errcomp,
                 vcov=  covbeta, vcov.errcomp=NULL,
                 residuals=as.numeric(egls), fitted.values=fv,
-                sigma2=SGLS,type=type, rho=errcomp, model=model.data, logLik=NULL, coy=yt, cox=xt, rhs=k)
-  class(spmod) <- "splm"
-  return(spmod)
-
+                sigma2=SGLS,type=type, rho=errcomp, model=model.data, logLik=NULL, coy=yt, cox=xt, rhs=k, type = type)
+  
 	}
 		}, 
 		stop("...\nUnknown method\n"))	

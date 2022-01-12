@@ -9,6 +9,7 @@ function(object,...){
             balanced <- TRUE #attr(object,"pdim")$balanced
             model.name <- object$type #attr(object,"pmodel")$model
             effect <- "individual" #attr(object,"pmodel")$effect
+            est.meth <- object$est.meth
             ## make coefficients' table if vcov exist
             if (!is.null(object$vcov)) {
                 std.err <- sqrt(diag(object$vcov))
@@ -32,15 +33,12 @@ function(object,...){
                 # object$lambda <- lambda
             # }
 
-            if (object$type == "random effects GM" ) {
+            if (grepl("(GM estimation)", object$type)) {
                 lambda <- object$rho
+                #print(lambda)
                 object$lambda <- lambda
             }
 
-            if (object$type == "fixed effects GM" ) {
-                lambda <- object$rho
-                object$lambda <- lambda
-            }
 
             ## make AR coefficient of y's table
             if(!is.null(object$vcov.arcoef)) {
@@ -68,6 +66,7 @@ function(object,...){
             object$ssr <- sum(residuals(object)^2)
             object$tss <- tss(object$model[[1]])
             object$rsqr <- 1-object$ssr/object$tss
+            object$est.meth <- est.meth
             object$fstatistic <- "nil" #Ftest(object)
             class(object) <- c("summary.splm","splm")
             object

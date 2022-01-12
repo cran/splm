@@ -1,4 +1,8 @@
-ivsplm <-function(formula,data=list(), index=NULL, endog = NULL, instruments= NULL, method = c("w2sls", "b2sls", "g2sls", "ec2sls"), lag = FALSE, listw = listw, effects = NULL, lag.instruments = FALSE){
+ivsplm <-function(formula,data=list(), index=NULL, 
+                  endog = NULL, instruments= NULL, 
+                  method = c("w2sls", "b2sls", "g2sls", "ec2sls"), 
+                  lag = FALSE, listw = listw, 
+                  effects = NULL, lag.instruments = FALSE){
 
 # If the user do not make any choice in terms of method, when effects is Fixed the function calculates the w2sls. On the other hand, when effects is random the function calculates the ec2sls
 if(length(method) !=1 && effects == "fixed") method <- "w2sls" 	
@@ -95,16 +99,28 @@ else instruments <- as.matrix(lm(instruments, data, na.action = na.fail, method 
 
 switch(method, 
 w2sls = {
-	result <- ivplm.w2sls(Y = y, X = x, H = instruments, endog = endog, lag = lag, listw = Ws, lag.instruments = lag.instruments, T = T, N = N, NT = NT)
+	result <- ivplm.w2sls(Y = y, X = x, H = instruments, endog = endog, 
+	                      lag = lag, listw = Ws, 
+	                      lag.instruments = lag.instruments, 
+	                      T = T, N = N, NT = NT)
 	},
 b2sls = {
-	result <- ivplm.b2sls(Y = y,X =x, H = instruments, endog = endog, lag = lag, listw = Ws, lag.instruments = lag.instruments, T = T, N = N, NT = NT)
+	result <- ivplm.b2sls(Y = y,X =x, H = instruments, endog = endog, 
+	                      lag = lag, listw = Ws, 
+	                      lag.instruments = lag.instruments, 
+	                      T = T, N = N, NT = NT)
 	},
 ec2sls = {
-	result <- ivplm.ec2sls(Y = y,X =x, H = instruments, endog = endog, lag = lag, listw = Ws, lag.instruments = lag.instruments, T = T, N = N, NT = NT)
+	result <- ivplm.ec2sls(Y = y, X =x, H = instruments, endog = endog, 
+	                       lag = lag, listw = Ws, 
+	                       lag.instruments = lag.instruments, 
+	                       T = T, N = N, NT = NT)
 	},
 g2sls = {
-	result <-ivplm.g2sls(Y = y,X =x, H = instruments, endog = endog, lag = lag, listw = Ws, lag.instruments = lag.instruments, T = T, N = N, NT = NT )
+	result <-ivplm.g2sls(Y = y,X =x, H = instruments, endog = endog, 
+	                     lag = lag, listw = Ws, 
+	                     lag.instruments = lag.instruments, 
+	                     T = T, N = N, NT = NT )
 	},
 stop("...\nUnknown method\n"))
 
@@ -115,7 +131,5 @@ stop("...\nUnknown method\n"))
     result$listw_style <- NULL
     result$call <- match.call()
 
-
-class(result) <- "stsls"
 result
 }

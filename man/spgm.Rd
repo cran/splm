@@ -15,7 +15,7 @@ errors components of the form:
 \deqn{ \epsilon_N = (e_T \otimes I_N ) \mu_N + \nu_N }
 
 where \eqn{ \rho}, and the variance components \eqn{\sigma^2_\mu} and \eqn{\sigma^2_\nu} 
-are estimated by GM, and the model coefficients by a feasible GLS estimator. The model can also include 
+are estimated by GM, and the model coefficients by a Feasible GLS estimator. The model can also include 
 additional (other than the spatial lag) endogenous variables. 
 }
 
@@ -49,13 +49,13 @@ as a formula with no dependent variable (endog = ~ x1 + x2). Note the ~ before t
   \item{instruments}{external instruments. Default \code{NULL}. If not \code{NULL} should be specified 
 as a formula with no dependent variable (instruments = ~ x1 + x2). Note the ~ before the expression.}
 \item{lag.instruments}{should the external instruments be spatially lagged?}
-  \item{verbose}{default \code{FALSE}, If \code{TRUE} reports function values during optimization}  
+  \item{verbose}{default \code{fALSE}, If \code{TRUE} reports function values during optimization}  
   \item{method}{One of \code{"w2sls"}, \code{"b2sls"}, \code{"g2sls"}, \code{"ec2sls"}. (See Details)}
   \item{control}{a list of control parameters for the optimization}
     \item{optim.method}{default set to \code{"nlminb"}. or optionally a method passed to \code{optim} to use an alternative optimizer.}
     \item{pars}{initial values of the parameter \code{rho} and \code{sigmav}. The default for \code{rho} is to 
     start from a regression of the spatially lagged residuals on the residuals (depending on the model). 
-    For \code{sigmav} the starting value is the variance of the residuals (again this depends on the model).  }
+    for \code{sigmav} the starting value is the variance of the residuals (again this depends on the model).  }
 }
 
 
@@ -110,7 +110,7 @@ function of the variance components.
   \item{residuals}{the GLS residuals}
   \item{fitted.values}{difference between response variable and residuals}
   \item{sigma2}{GLS residuals variance}
-  \item{type}{'random effect GM'}
+  \item{type}{'a description of the model estimated'}
   \item{rho}{a vector including the spatial parameter and the variance components (see Details)}  
   \item{model}{the matrix of the data used}
   \item{call}{the call used to create the object}
@@ -145,11 +145,140 @@ URL http://www.jstatsoft.org/v47/i01/.
 
 
 \examples{
-data(Produc, package = "plm") 
+library(splm)
+library(plm)
+data(Produc)
 data(usaww)
-GM <- spgm(log(gsp)~log(pcap)+log(pc)+log(emp)+unemp, data=Produc,
-           listw = usaww, moments="fullweights", spatial.error = TRUE)
-summary(GM)
+########SPATIAL LAG MODEL######
+#no space no endog: error usa plm
+\dontrun{GM_lag_b2sls <- spgm(log(gsp) ~ log(pcap) + log(pc) + unemp, data=Produc,
+                     lag = FALSE, spatial.error = FALSE, method = "b2sls",
+                     listw = usaww)}
+#no space but endog 
+GM_b2sls_e <- spgm(log(gsp) ~  log(pc) + unemp, data=Produc,
+                       lag = FALSE, spatial.error = FALSE, endog = ~ log(pcap),
+                       method = "b2sls",
+                       instruments = ~log(hwy), listw = usaww)
+summary(GM_b2sls_e)
+GM_g2sls_e <- spgm(log(gsp) ~  log(pc) + unemp, data=Produc,
+                   lag = FALSE, spatial.error = FALSE, endog = ~ log(pcap),
+                   method = "g2sls",
+                   instruments = ~log(hwy), listw = usaww)
+summary(GM_g2sls_e)
+GM_ec2sls_e <- spgm(log(gsp) ~  log(pc) + unemp, data=Produc,
+                   lag = FALSE, spatial.error = FALSE, endog = ~ log(pcap),
+                   method = "ec2sls",
+                   instruments = ~log(hwy), listw = usaww)
+summary(GM_ec2sls_e)
+GM_w2sls_e <- spgm(log(gsp) ~  log(pc) + unemp, data=Produc,
+                   lag = FALSE, spatial.error = FALSE, endog = ~ log(pcap),
+                   method = "w2sls",
+                   instruments = ~log(hwy), listw = usaww)
+summary(GM_w2sls_e)
+#SPATIAL LAG MODEL 
+GM_lag_b2sls <- spgm(log(gsp) ~ log(pcap) + log(pc) + unemp, data=Produc,
+           lag = TRUE, spatial.error = FALSE, method = "b2sls",
+           listw = usaww)
+summary(GM_lag_b2sls)
+GM_lag_g2sls <- spgm(log(gsp) ~ log(pcap) + log(pc) + unemp, data=Produc,
+           lag = TRUE, spatial.error = FALSE, method = "g2sls",
+           listw = usaww)
+summary(GM_lag_g2sls)
+GM_lag_ec2sls <- spgm(log(gsp) ~ log(pcap) + log(pc) + unemp, data=Produc,
+           lag = TRUE, spatial.error = FALSE, method = "ec2sls",
+           listw = usaww)
+summary(GM_lag_ec2sls)
+GM_lag_w2sls <- spgm(log(gsp) ~ log(pcap) + log(pc) + unemp, data=Produc,
+           lag = TRUE, spatial.error = FALSE,
+           listw = usaww, method = "w2sls")
+summary(GM_lag_w2sls)
+#endogenous
+GM_lag_b2sls_e <- spgm(log(gsp) ~  log(pc) + unemp, data=Produc,
+                  lag = TRUE,
+                  spatial.error = FALSE, endog = ~ log(pcap),
+                  method = "b2sls",
+                  instruments = ~log(hwy), listw = usaww)
+summary(GM_lag_b2sls_e)
+GM_lag_g2sls_e <- spgm(log(gsp) ~  log(pc) + unemp, data=Produc,
+                       lag = TRUE,
+                       spatial.error = FALSE, endog = ~ log(pcap),
+                       method = "g2sls",
+                       instruments = ~log(hwy), listw = usaww)
+summary(GM_lag_g2sls_e)
+GM_lag_ec2sls_e <- spgm(log(gsp) ~  log(pc) + unemp, data=Produc,
+                       lag = TRUE,
+                       spatial.error = FALSE, endog = ~ log(pcap),
+                       method = "ec2sls",
+                       instruments = ~log(hwy), listw = usaww)
+summary(GM_lag_ec2sls_e)
+GM_lag_w2sls_e <- spgm(log(gsp) ~  log(pc) + unemp, data=Produc,
+                       lag = TRUE,
+                       spatial.error = FALSE, endog = ~ log(pcap),
+                       method = "w2sls",
+                       instruments = ~log(hwy), listw = usaww)
+summary(GM_lag_w2sls_e)
+
+########SPATIAL ERROR MODEL######
+GM_error_within <- spgm(log(gsp) ~ log(pcap) + log(pc) + unemp, data=Produc,
+                     lag = FALSE, spatial.error = TRUE, model = "within",
+                     listw = usaww)
+summary(GM_error_within)
+GM_error_random <- spgm(log(gsp) ~ log(pcap) + log(pc) + unemp, data=Produc,
+                        lag = FALSE, spatial.error = TRUE, model = "random",
+                        listw = usaww)
+summary(GM_error_random)
+GM_error_within_fw <- spgm(log(gsp) ~ log(pcap) + log(pc) + unemp, data=Produc,
+                        lag = FALSE, spatial.error = TRUE, model = "within",
+                        listw = usaww, moments = "fullweights")
+summary(GM_error_within_fw)
+GM_error_random_w <- spgm(log(gsp) ~ log(pcap) + log(pc) + unemp, data=Produc,
+                        lag = FALSE, spatial.error = TRUE, model = "random",
+                        listw = usaww, moments = "fullweights")
+summary(GM_error_random_w)
+#endogenous
+GM_error_within_e <- spgm(log(gsp) ~  log(pc) + unemp, data=Produc,
+                        lag = FALSE,
+                        spatial.error = TRUE, endog = ~ log(pcap),
+                        model = "within",
+                        instruments = ~log(hwy), listw = usaww)
+summary(GM_error_within_e)
+GM_error_random_e <- spgm(log(gsp) ~  log(pc) + unemp, data=Produc,
+                       lag = FALSE,
+                       spatial.error = TRUE, endog = ~ log(pcap),
+                       model = "random",
+                       instruments = ~log(hwy), listw = usaww)
+summary(GM_error_random_e)
+
+########SARAR MODEL######
+GM_sarar_within <- spgm(log(gsp) ~ log(pcap) + log(pc) + unemp, data=Produc,
+                        lag = TRUE, spatial.error = TRUE, model = "within",
+                        listw = usaww)
+summary(GM_sarar_within)
+GM_sarar_random <- spgm(log(gsp) ~ log(pcap) + log(pc) + unemp, data=Produc,
+                        lag = TRUE, spatial.error = TRUE, model = "random",
+                        listw = usaww)
+summary(GM_sarar_random)
+GM_sarar_within_fw <- spgm(log(gsp) ~ log(pcap) + log(pc) + unemp, data=Produc,
+                           lag = TRUE, spatial.error = TRUE, model = "within",
+                           listw = usaww, moments = "fullweights")
+summary(GM_sarar_within_fw)
+GM_sarar_random_fw <- spgm(log(gsp) ~ log(pcap) + log(pc) + unemp, data=Produc,
+                          lag = TRUE, spatial.error = TRUE, model = "random",
+                          listw = usaww, moments = "fullweights")
+summary(GM_sarar_random_fw)
+#endogenous
+GM_sarar_within_e <- spgm(log(gsp) ~  log(pc) + unemp, data=Produc,
+                          lag = TRUE,
+                          spatial.error = TRUE, endog = ~ log(pcap),
+                          model = "within",
+                          instruments = ~log(hwy), listw = usaww)
+summary(GM_sarar_within_e)
+GM_sarar_random_e <- spgm(log(gsp) ~  log(pc) + unemp, data=Produc,
+                          lag = TRUE,
+                          spatial.error = TRUE, endog = ~ log(pcap),
+                          model = "random",
+                          instruments = ~log(hwy), listw = usaww)
+summary(GM_sarar_random_e)
 }
 
 \keyword{spatial}

@@ -11,7 +11,15 @@ importFrom(plm, plm)
 importFrom(plm, pmodel.response)
 importFrom(plm, pdim)
 importFrom(nlme, fdHess, lme)
-import(spdep)
+if (packageVersion("spdep") < 1.2) {
+  import(spdep, except=c(do_ldet, eigen_setup, trW, impacts.gmsar, impacts))
+  importFrom(spatialreg, do_ldet, eigen_setup, trW, impacts)
+} else {
+  import(spdep, except=c(set.ClusterOption, set.VerboseOption, set.mcOption, 
+    get.VerboseOption, get.coresOption, set.coresOption, set.ZeroPolicyOption, 
+    get.mcOption, get.ClusterOption, get.ZeroPolicyOption))
+  import(spatialreg)
+}
 importFrom(ibdreg, pchibar)
 import(Matrix)
 importFrom(spam, as.spam, diag.spam, solve.spam, t.spam, determinant.spam)

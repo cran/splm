@@ -30,7 +30,7 @@ a covariance matrix of beta coefficients
 ## data(Produc, package="plm")
 ## data(usaww)
 ## fm <- log(gsp)~log(pcap)+log(pc)+log(emp)+unemp
-## sarremod <- spml(fm, data=Produc, listw = mat2listw(usaww),
+## sarremod <- spml(fm, data=Produc, listw = spdep::mat2listw(usaww),
 ##  model="random", lag=TRUE, spatial.error="none")
 ## ## compact representation of betas
 ## library(lmtest)

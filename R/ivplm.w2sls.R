@@ -35,7 +35,7 @@ res$var<-varb
 sigma2v1<- res$sse/ ((N * (T -1)) - ncol(as.matrix(Xwithin)) - ncol(endogwithin)) 
 res$sigmav<- sigma2v1	
 res$Hwithin <- Hwithin
-
+res$type <- "w2sls model without spatial lag"
 
 	}
 	
@@ -73,6 +73,7 @@ res$var<-varb
 sigma2v1<- res$sse / ((N * (T -1)) - ncol(as.matrix(Xwithin)) - 1) 
 res$sigmav <- sigma2v1
 res$Hwithin <- Hwithin
+res$type <- "Spatial w2sls model"
 		}
 		
 else{
@@ -130,6 +131,7 @@ res$var<-varb
 sigma2v1<- res$sse / ((N * (T -1)) - ncol(as.matrix(Xwithin)) - ncol(endogwithin)) 
 res$sigmav <- sigma2v1
 res$Hwithin <- Hwithin
+res$type <- "Spatial w2sls model with additional endogenous variables"
 	}		
 	
 	}	

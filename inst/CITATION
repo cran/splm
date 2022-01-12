@@ -1,5 +1,22 @@
 citHeader("To cite splm in publications use:")
 
+citEntry(entry="Article",
+         title="A Review of Software for Spatial Econometrics in {R}",
+         author=personList(as.person("Roger Bivand"), 
+                           as.person("Giovanni Millo"),
+                           as.person("Gianfranco Piras")),
+         journal="Mathematics",
+         year="2021",
+         volume="9",
+         number="11",
+         url="https://www.mdpi.com/2227-7390/9/11/1276",
+         doi="10.3390/math9111276",
+         textVersion = paste("Bivand, R., G. Millo, and G. Piras. 2021.",
+         "A Review of Software for Spatial Econometrics in R.",
+         "Mathematics 9 (11):1276.",
+         "http://dx.doi.org/10.3390/math9111276.")
+)
+
 citEntry(entry = "Article",
   title        = "{splm}: Spatial Panel Data Models in {R}",
   author       = personList(as.person("Giovanni Millo"),
@@ -9,12 +26,12 @@ citEntry(entry = "Article",
   volume       = "47",
   number       = "1",
   pages        = "1--38",
-  url          = "http://www.jstatsoft.org/v47/i01/",
+  url          = "https://www.jstatsoft.org/v47/i01/",
 
   textVersion  =
   paste("Giovanni Millo, Gianfranco Piras (2012).",
         "splm: Spatial Panel Data Models in R.",
         "Journal of Statistical Software, 47(1), 1-38.",
-        "URL http://www.jstatsoft.org/v47/i01/.")
+        "URL https://www.jstatsoft.org/v47/i01/.")
 )
 

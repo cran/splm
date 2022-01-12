@@ -44,7 +44,7 @@ URL http://www.jstatsoft.org/v47/i01/.}
 data(Produc, package="plm")
 data(usaww)
 fm <- log(gsp)~log(pcap)+log(pc)+log(emp)+unemp
-bsktest(fm,data=Produc, listw = mat2listw(usaww),
+bsktest(fm,data=Produc, listw = spdep::mat2listw(usaww),
   test="LM1")
 }
 

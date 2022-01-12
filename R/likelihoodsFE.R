@@ -1,4 +1,8 @@
 #### SAR PANEL
+
+# # fake comments
+
+ 
 `conclikpan` <- function(lambda, env){
 	
 	e0e0 <- get("e0e0", envir = env)

@@ -1,3 +1,8 @@
+Changes in Version 1.5-0
+ o Fixed effects methods (spfeml) are now based on the data transformation infrastructure of plm, so that (as already happens in spreml) calls to panel functions in the formula are supported: e.g., to slag() to do Spatial Durbin models 
+
+ o spgm crash in check --as-cran fixed (temporarily)
+
 Changes in Version 1.4-11
  o Fixed fixed effects 
 

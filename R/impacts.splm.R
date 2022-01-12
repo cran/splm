@@ -21,7 +21,7 @@ if(is.na(match(obj$type, c("fixed effects lag","fixed effects sarar","random eff
 	
 	if(obj$type == "fixed effects lag"){
 		
-class(obj)<- "gmsar"	
+class(obj)<- "Gmsar"	
 obj$type <- "SARAR"
 obj$data <- as.vector(obj$model)
 obj$s2 <- obj$sigma2
@@ -32,7 +32,7 @@ imp <- impacts(obj, tr=tr, R=R, ...)
 	
 	if(obj$type == "fixed effects sarar"){
 
-class(obj)<- "gmsar"	
+class(obj)<- "Gmsar"	
 obj$type <- "SARAR"
 rho <- obj$coefficients[2]
 obj$coefficients <- obj$coefficients[-2]
@@ -48,7 +48,7 @@ imp <- impacts(obj, tr=tr, R=R,...)
 	if(obj$type == "random effects ML")	{
 
 if(!is.null(obj$arcoef)) {
-class(obj)<- "gmsar"	
+class(obj)<- "Gmsar"	
 obj$type <- "SARAR"
 
 obj$coefficients <- c(obj$arcoef, obj$coefficients)
@@ -68,7 +68,7 @@ imp <- impacts(obj, tr=tr, R=R, ...)
 		
 		if(is.null(obj$endog)) {
 obj$secstep_var <- vcov(obj)			
-class(obj)<- "gmsar"	
+class(obj)<- "Gmsar"	
 obj$type <- "SARAR"
 obj$data <- as.vector(obj$model)
 obj$s2 <- obj$sigma2
@@ -86,7 +86,7 @@ if(obj$type == "lag GM")			{
 	
 		if(is.null(obj$endog)) {
 
-class(obj)<- "gmsar"	
+class(obj)<- "Gmsar"	
 obj$type <- "SARAR"
 obj$secstep_var <- obj$var			
 obj$data <- as.vector(obj$model)
@@ -108,7 +108,7 @@ if(obj$type == "random effects GM")			{
 	
 		if(is.null(obj$endog)) {
 
-class(obj)<- "gmsar"	
+class(obj)<- "Gmsar"	
 obj$type <- "SARAR"
 obj$secstep_var <- obj$vcov			
 obj$data <- as.vector(obj$model)

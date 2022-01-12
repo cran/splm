@@ -27,7 +27,7 @@ a \code{pseries}
 \examples{
 data(Produc, package="plm")
 data(usaww)
-usalw <- mat2listw(usaww)
+usalw <- spdep::mat2listw(usaww)
 fm <- log(gsp)~log(pcap)+log(pc)+log(emp)+unemp+slag(log(pcap),
   listw=usalw)
 slxmod <- spreml(fm, data=Produc, w = usaww,

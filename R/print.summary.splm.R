@@ -1,13 +1,16 @@
 `print.summary.splm` <- function(x, digits=max(3, getOption("digits") - 2),
                                  width=getOption("width"), ...) {
 
-    ## manage model description
+    ## manage model description (changed BY GP 081321) 
     if(grepl("random", x$type)) {
             ## "random" models by spreml() have a more complicated description
+         
             m.des <- x$type.des
         } else {
+            
             m.des <- paste("Spatial panel", x$type,"model\n")
         }
+    if (is.character(x$est.meth)) m.des <- x$type
     cat(paste(m.des, "\n"))
 
     ## print call
@@ -21,6 +24,28 @@
     print(sumres(x))
 
     ## if model is of 'random' type ex spreml():
+    if(is.character(x$est.meth)){
+        
+        if(is.numeric(x$lambda)) {
+            cat("\nEstimated spatial coefficient, variance components and theta:\n")
+            print(x$lambda)
+        }
+            
+        ## print spatial lag coefficient for 'random' models
+        if("lambda" %in% dimnames(x$CoefTable)[[1]]) {
+            cat("\nSpatial autoregressive coefficient:\n")
+            printCoefmat(x$CoefTable["lambda", , drop=FALSE], digits=digits, signif.legend=FALSE)
+        }
+        
+        ## print betas (w/o spatial coefs)
+        cat("\nCoefficients:\n")
+        spat.nam <- dimnames(x$CoefTable)[[1]] %in% c("rho","lambda")
+        printCoefmat(x$CoefTable[!spat.nam, , drop=FALSE], digits=digits)
+        cat("\n")
+        
+    }
+    
+    else{
     if(grepl("random", x$type)) {
 
         ## print error components' table for 'random' models
@@ -68,6 +93,7 @@
         printCoefmat(x$CoefTable[!spat.nam, , drop=FALSE], digits=digits)
         cat("\n")
 
+    }
     }
         
     invisible(x)

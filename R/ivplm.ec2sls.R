@@ -72,7 +72,7 @@ Hins <- cbind(Xwithin,Xbetweennt,Hwithin,Hbetweennt)
 res<-spgm.tsls(ystar, endogstar, xstar, Hinst = Hins, instr = TRUE )
 res$sigma1<-sigma21
 res$sigmav<-sigma2v1
-
+res$type <- "ec2sls model without spatial lag"
 }
 
 
@@ -122,6 +122,7 @@ res <- spgm.tsls(ystar, endogstar, xstar, Hinst = A, instr = TRUE)
 
 res$sigma1 <- sigma21
 res$sigmav <- sigma2v1
+res$type <- "Spatial ec2sls model"
 }	
 
 else{
@@ -192,7 +193,7 @@ res <- spgm.tsls(ystar, endogstar, xstar, Hinst = A, instr = TRUE)
 
 res$sigma1<- sigma21
 res$sigma1<- sigma2v1
-
+res$type <- "Spatial ec2sls model with additional endogenous variables"
 
 	}	
 	

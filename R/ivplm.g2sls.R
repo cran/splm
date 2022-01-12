@@ -72,7 +72,7 @@ Hstar<-Hwithin/sqrt(sigma2v1) + Hbetweennt/sqrt(sigma21)
 res<-spgm.tsls(ystar, endogstar, xstar, Hstar )
 res$sigma1<-sigma21
 res$sigmav<-sigma2v1
-
+res$type <- "g2sls model without spatial lag"
 }
 
 else{
@@ -121,7 +121,7 @@ res <- spgm.tsls(ystar, endogstar, xstar, Hstar)
 
 res$sigma1 <- sigma21
 res$sigmav <- sigma2v1
-
+res$type <- "Spatial g2sls model"
 }
 
 
@@ -181,6 +181,7 @@ res <- spgm.tsls(ystar, endogstar, xstar, Hstar)
 
 res$sigma1<- sigma21
 res$sigma1<- sigma2v1
+res$type <- "Spatial g2sls model with additional endogenous variables"
 	}
 }
 

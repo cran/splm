@@ -10,7 +10,7 @@ listw2dgCMatrix(listw, zero.policy = NULL)
 }
 
 \arguments{
-\item{listw}{a \code{listw} object created for example by \code{nb2listw} }
+\item{listw}{a \code{listw} object created for example by \code{spdep::nb2listw} }
   \item{zero.policy}{See \code{lagsarlm} for details}
 }
 
@@ -25,7 +25,7 @@ Matrix class object: a sparse Matrix}
 
 \examples{
 data(columbus, package="spdep")
-listw<-nb2listw(col.gal.nb)
+listw<-spdep::nb2listw(col.gal.nb)
 spW<-listw2dgCMatrix(listw)
 }
 \keyword{spatial}

@@ -36,6 +36,8 @@ if(!lag){
 
 res <-spgm.tsls(sqrt(T)*as.matrix(ybetween), sqrt(T)*endogbetween, sqrt(T)*Xbetween, sqrt(T)*as.matrix(Hbetween) )
 res$Hbetween <- Hbetween
+res$type <- "b2sls model without spatial lag"
+
 }
 
 else{
@@ -70,6 +72,8 @@ Hbetween<-cbind(WXbetween, WWXbetween)
 
 res<-spgm.tsls(sqrt(T)*as.matrix(ybetween), sqrt(T)*as.matrix(wybetween), sqrt(T)*Xbetween, sqrt(T)*as.matrix(Hbetween) )
 res$Hbetween <- Hbetween
+res$type <- "Spatial b2sls model"
+
 		}
 		
 else{
@@ -124,6 +128,7 @@ colnames(endogbetween)<-c(colnames(endog), "lambda")
 	
 res<-spgm.tsls(sqrt(T)*as.matrix(ybetween), sqrt(T)*endogbetween, sqrt(T)*Xbetween, sqrt(T)*as.matrix(Hbetween) )
 res$Hbetween <- Hbetween
+res$type <- "Spatial b2sls model with additional endogenous variables"
 	}			
 	}	
 

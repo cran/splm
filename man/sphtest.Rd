@@ -21,7 +21,7 @@ sphtest(x, ...)
   \item{data}{an object of class \code{data.frame} or \code{pdata.frame}. An optional data frame containing the variables
   in the model. When the obect is a \code{data.frame}, the first two columns may contain the indexes. See \code{index}}
 \item{index}{if not NULL (default), a character vector to identify the indexes among the columns of the \code{data.frame}}
-\item{listw}{an object of class \code{listw} created for example by \code{nb2listw} }
+\item{listw}{an object of class \code{listw} created for example by \code{spdep::nb2listw} }
 \item{spatial.model}{one of \code{c("lag","error","sarar")}, the model to be estimated (only lag, only error, both lag and error dependence)}
 \item{method}{one of \code{c("ML","GM")}}
 \item{errors}{one of \code{c("BSK","KPP")}. When \code{method} is \code{"ML"} defines the specification of the innovations}
@@ -46,7 +46,7 @@ URL http://www.jstatsoft.org/v47/i01/.}
 data(Produc, package="plm")
 data(usaww)
 fm <- log(gsp)~log(pcap)+log(pc)+log(emp)+unemp
-test1<-sphtest(fm,data=Produc, listw = mat2listw(usaww),
+test1<-sphtest(fm,data=Produc, listw = spdep::mat2listw(usaww),
                 spatial.model = "error", method="GM")
 test1
 mod1<- spgm(fm, data=Produc, listw = usaww, model = "random",
