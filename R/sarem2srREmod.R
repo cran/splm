@@ -6,7 +6,7 @@ function (X, y, ind, tind, n, k, t., nT, w, w2, coef0 = rep(0, 4),
 {
 
     ## New KKP+SR estimator, Giovanni Millo 12/03/2013
-    ## structure:
+    ## structure: 
     ## a) specific part
     ## - set names, bounds and initial values for parms
     ## - define building blocks for likelihood and GLS as functions of parms
@@ -103,7 +103,7 @@ function (X, y, ind, tind, n, k, t., nT, w, w2, coef0 = rep(0, 4),
     upper.bounds <- c(1e+09, 0.999, 0.999, 0.999)     # lag-specific line (idem)
 
     ## constraints as cA %*% theta + cB >= 0
-    ## equivalent to: phi>=0, -1<=(rho, lambda, psi)<=1
+    ## equivalent to: phi>=0, -1<=(psi, rho, lambda)<=1
     ## NB in maxLik() optimization cannot start at the boundary of the
     ## parameter space !
     cA <- cbind(c(1, rep(0,6)),
@@ -209,7 +209,7 @@ function (X, y, ind, tind, n, k, t., nT, w, w2, coef0 = rep(0, 4),
     nvcovpms <- length(nam.errcomp) - 1
     ## error handler here for singular Hessian cases
     covTheta <- try(solve(-myHessian), silent=TRUE)
-    if(class(covTheta) == "try-error") {
+    if(inherits(covTheta, "try-error")) {
         covTheta <- matrix(NA, ncol=nvcovpms+1,
                            nrow=nvcovpms+1)
         warning("Hessian matrix is not invertible")

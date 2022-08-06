@@ -5,7 +5,7 @@ function (X, y, ind, tind, n, k, t, nT, w, w2, coef0 = rep(0, 3),
 {
 
     ## extensive function rewriting, Giovanni Millo 29/09/2010
-    ## structure:
+    ## structure: 
     ## a) specific part
     ## - set names, bounds and initial values for parms
     ## - define building blocks for likelihood and GLS as functions of parms

@@ -1,7 +1,8 @@
 spreml <-
 function (formula, data, index = NULL, w, w2=w, lag = FALSE,
           errors = c("semsrre", "semsr", "srre", "semre",
-          "re", "sr", "sem","ols", "sem2srre", "sem2re"),
+                     "re", "sr", "sem","ols", "sem2srre",
+                     "sem2re", "semgre"),
           pvar = FALSE, hess = FALSE, quiet = TRUE,
           initval = c("zeros", "estimate"),
           x.tol = 1.5e-18, rel.tol = 1e-15, ...)
@@ -61,7 +62,7 @@ function (formula, data, index = NULL, w, w2=w, lag = FALSE,
     ## manage initial values
     sv.length <- switch(match.arg(errors), semsrre = 3, semsr = 2,
           srre = 2, semre = 2, re = 1, sr = 1, sem = 1, ols = 0,
-          sem2srre = 3, sem2re = 2)
+          sem2srre = 3, sem2re = 2, semgre = 3)
     errors. <- match.arg(errors)
     if (is.numeric(initval)) {
         if (length(initval) != sv.length) {
@@ -73,29 +74,43 @@ function (formula, data, index = NULL, w, w2=w, lag = FALSE,
         switch(match.arg(initval), zeros = {
             coef0 <- rep(0, sv.length)
         }, estimate = {
-            if (nchar(errors.) < 4) {
-                stop("Pre-estimation of unique vcov parm is meaningless: \n please select (default) option 'zeros' or supply a scalar")
+            if(errors. == "semgre") {
+
+                ## if errors are GSRE the pre-estimation is not implemented
+                ## as there would be little gains
+                coef0 <- rep(0, sv.length)
+                warning("Pre-estimation of error components is not implemented for 'semgre': starting values were set to zero.")
+
+            } else {
+
+                ## determine individual error parms to be pre-estimated and do
+                ## estimation of single.parameter models
+                
+                if (nchar(errors.) < 4) {
+                    stop("Pre-estimation of unique vcov parm is meaningless: \n please select (default) option 'zeros' or supply a scalar")
+                }
+                coef0 <- NULL
+                if (grepl("re", errors.)) {
+                    REmodel <- REmod(X, y, ind, tind, n, k, t, nT,
+                                     w, coef0 = 0, hess = FALSE, trace = trace,
+                                     x.tol = 1.5e-18, rel.tol = 1e-15, ...)
+                    coef0 <- c(coef0, REmodel$errcomp)
+                }
+                if (grepl("sr", errors.)) {
+                    ARmodel <- ssrmod(X, y, ind, tind, n, k, t, nT,
+                                      w, coef0 = 0, hess = FALSE, trace = trace,
+                                      x.tol = 1.5e-18, rel.tol = 1e-15, ...)
+                    coef0 <- c(coef0, ARmodel$errcomp)
+                }
+                if (grepl("sem", errors.)) {
+                    SEMmodel <- semmod(X, y, ind, tind, n, k, t,
+                                       nT, w, coef0 = 0, hess = FALSE, trace = trace,
+                                       x.tol = 1.5e-18, rel.tol = 1e-15, ...)
+                    coef0 <- c(coef0, SEMmodel$errcomp)
+                }
             }
-            coef0 <- NULL
-            if (grepl("re", errors.)) {
-                REmodel <- REmod(X, y, ind, tind, n, k, t, nT,
-                  w, coef0 = 0, hess = FALSE, trace = trace,
-                  x.tol = 1.5e-18, rel.tol = 1e-15, ...)
-                coef0 <- c(coef0, REmodel$errcomp)
-            }
-            if (grepl("sr", errors.)) {
-                ARmodel <- ssrmod(X, y, ind, tind, n, k, t, nT,
-                  w, coef0 = 0, hess = FALSE, trace = trace,
-                  x.tol = 1.5e-18, rel.tol = 1e-15, ...)
-                coef0 <- c(coef0, ARmodel$errcomp)
-            }
-            if (grepl("sem", errors.)) {
-                SEMmodel <- semmod(X, y, ind, tind, n, k, t,
-                  nT, w, coef0 = 0, hess = FALSE, trace = trace,
-                  x.tol = 1.5e-18, rel.tol = 1e-15, ...)
-                coef0 <- c(coef0, SEMmodel$errcomp)
-            }
-        })
+        }
+        )
     }
 
     ## switch actual estimator function
@@ -120,6 +135,8 @@ function (formula, data, index = NULL, w, w2=w, lag = FALSE,
             sarmod
         }, sem2re = {
             sarem2REmod
+        }, semgre = {
+            saremgREmod
         })
 	  coef0 <- c(coef0, 0)
     } else {
@@ -143,6 +160,8 @@ function (formula, data, index = NULL, w, w2=w, lag = FALSE,
             olsmod
         }, sem2re = {
             sem2REmod
+        }, semgre = {
+            semgREmod
         })
         arcoef <- NULL
     }

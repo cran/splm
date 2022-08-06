@@ -203,8 +203,8 @@ FE.out
 	
 effects.splm<-function(object,...){
 	x<-object
-	if (class(x) != "splm") stop(paste("methos not implemented for objects of class", class(x)))
-	if (class(x) != "splm" && (x$type != "fixed effects lag" || x$type != "fixed effects error")) stop(paste("methos not implemented for objects of type", x$type))
+	if (!inherits(x, "splm")) stop(paste("methos not implemented for objects of class", class(x)))
+	if (!inherits(x, "splm") && (x$type != "fixed effects lag" || x$type != "fixed effects error")) stop(paste("methos not implemented for objects of type", x$type))
 	all.FE<-x$res.eff[[1]]
 	effects <- x$effects
 if (effects=="pooled") stop("No fixed effects available if effects == pooled")

@@ -93,7 +93,7 @@ ldetB <- function(lambda, listw, can.sim=TRUE) {
         I <- diag.spam(1, n, n)
         B <- I - lambda * csrw
         J1 <- try(determinant(B, logarithm = TRUE)$modulus, silent = TRUE)
-        if (class(J1) == "try-error") {
+        if (class(J1)[1] == "try-error") {
             ## fall back on standard methods
             ldetB <- log(det(as.matrix(B)))
             warning("Bad result in calculating log(det(B))")

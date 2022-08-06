@@ -463,7 +463,8 @@ if(Hess) asyv <- NULL
 else asyv <- asyv
 
 
-	return<-list(coeff=betas, rho = rho, s2 = s2, rest.se = rest.se, rho.se = rho.se, s2.se = s2.se, asyvar1=asyvar1, residuals = r, asyv = asyv)
+	return<-list(coeff=betas, rho = rho, s2 = s2, rest.se = rest.se, rho.se = rho.se, s2.se = s2.se, asyvar1=asyvar1, residuals = r, 
+	             ll =LL, asyv = asyv)
 }
 
 

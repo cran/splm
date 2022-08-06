@@ -8,7 +8,8 @@
 \usage{
 spreml(formula, data, index = NULL, w, w2=w, lag = FALSE,
           errors = c("semsrre", "semsr", "srre", "semre",
-          "re", "sr", "sem","ols", "sem2srre", "sem2re"),
+                     "re", "sr", "sem","ols", "sem2srre",
+                     "sem2re", "semgre"),
           pvar = FALSE, hess = FALSE, quiet = TRUE,
           initval = c("zeros", "estimate"),
           x.tol = 1.5e-18, rel.tol = 1e-15, ...) 

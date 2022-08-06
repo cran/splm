@@ -41,8 +41,7 @@
   }
 }
 \source{
-    Journal of Applied Econometrics data archive : \url{http://wileyonlinelibrary.com/journal/jae}.
-
+    Journal of Applied Econometrics Data Archive.
 }
 \references{
      Qu Feng and William C. Horrace, (2012) \dQuote{Alternative Measures of Technical Efficiency: Skew, Bias and Scale}, \emph{Journal of Applied Econometrics}, \bold{forthcoming}.
