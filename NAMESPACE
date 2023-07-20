@@ -11,38 +11,18 @@ importFrom(plm, plm)
 importFrom(plm, pmodel.response)
 importFrom(plm, pdim)
 importFrom(nlme, fdHess, lme)
+importFrom(stringr, str_remove)
 
-
-#if (packageVersion("spdep") < 1.2) {
-#  import(spdep, except=c(do_ldet, eigen_setup, trW, impacts.gmsar, impacts))
-#  importFrom(spatialreg, do_ldet, eigen_setup, trW, impacts)
-#} else {
-#  import(spdep, except=c(set.ClusterOption, set.VerboseOption, set.mcOption, 
-#    get.VerboseOption, get.coresOption, set.coresOption, set.ZeroPolicyOption, 
-#    get.mcOption, get.ClusterOption, get.ZeroPolicyOption))
-#  import(spatialreg)
-#}
-
-## check if we can rationalize imports from spdep and spatialreg (also to avoid
-## problematic dependencies like, e.g., gdata)
-if (packageVersion("spdep") < 1.2) {
-  import(spdep, except=c(do_ldet, eigen_setup, trW, impacts.gmsar, impacts))
-  importFrom(spatialreg, do_ldet, eigen_setup, trW, impacts)
-} else {
-  #import(spdep, except=c(set.ClusterOption, set.VerboseOption, set.mcOption, 
-   # get.VerboseOption, get.coresOption, set.coresOption, set.ZeroPolicyOption, 
-    #get.mcOption, get.ClusterOption, get.ZeroPolicyOption))
-    importFrom(spdep, mat2listw, listw2mat, lag.listw, nblag,
-               is.symmetric.nb, is.symmetric.glist, card)
-    importFrom(spatialreg, impacts,
-             do_ldet, eigen_setup, trW,
-             eigen_pre_setup, Matrix_setup, Matrix_J_setup, spam_setup,
-             spam_update_setup, cheb_setup, mcdet_setup, LU_setup,
-             LU_prepermutate_setup, moments_setup,
-             SE_classic_setup, SE_whichMin_setup, SE_interp_setup,
-             as.spam.listw, get.ZeroPolicyOption)
-}
-
+# rely on spdep (>= 1.2-1) in Imports:
+importFrom(spdep, mat2listw, listw2mat, lag.listw, nblag,
+           is.symmetric.nb, is.symmetric.glist, card)
+importFrom(spatialreg, impacts,
+         do_ldet, eigen_setup, trW,
+         eigen_pre_setup, Matrix_setup, Matrix_J_setup, spam_setup,
+         spam_update_setup, cheb_setup, mcdet_setup, LU_setup,
+         LU_prepermutate_setup, moments_setup,
+         SE_classic_setup, SE_whichMin_setup, SE_interp_setup,
+         as.spam.listw, get.ZeroPolicyOption)
 
 importFrom(ibdreg, pchibar)
 import(Matrix)
@@ -56,7 +36,7 @@ importFrom(parallel, mclapply)
 export(bsktest, sphtest, bsjktest, vcov.splm,
 effects.splm, print.effects.splm, slag, 
 print.splm, spml, spgm, summary.splm, sphtest,
-listw2dgCMatrix, spreml, rwtest, slmtest)
+listw2dgCMatrix, spreml, rwtest, slmtest, impacts)
 
 
 
@@ -70,8 +50,10 @@ S3method(bsjktest, formula)
 S3method(summary, splm)
 S3method(sphtest, formula)
 S3method(sphtest, splm)
-S3method(impacts, splm)
+S3method(impacts, splm_ML)
+S3method(impacts, splm_GM)
 S3method(slag, pseries)
+S3method(slag, default)
 S3method(rwtest, formula)
 S3method(rwtest, panelmodel)
 S3method(rwtest, pseries)

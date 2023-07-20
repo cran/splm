@@ -20,12 +20,12 @@ additional (other than the spatial lag) endogenous variables.
 }
 
 \usage{
-spgm(formula, data=list(), index=NULL, listw =NULL, listw2 = NULL,
-         model=c("within","random"), lag = FALSE, spatial.error=TRUE,
+spgm(formula, data=list(), index=NULL, listw = NULL, listw2 = NULL, Durbin = FALSE,
+         model = c("within", "random"), lag = FALSE, spatial.error = TRUE,
          moments = c("initial", "weights", "fullweights"), endog = NULL, 
-         instruments= NULL, lag.instruments = FALSE, verbose = FALSE, 
+         instruments = NULL, lag.instruments = FALSE, verbose = FALSE, 
          method = c("w2sls", "b2sls", "g2sls", "ec2sls"), control = list(), 
-         optim.method = "nlminb", pars = NULL)
+         optim.method = "nlminb",  pars = NULL)
 }
 
 \arguments{
@@ -37,6 +37,7 @@ spgm(formula, data=list(), index=NULL, listw =NULL, listw2 = NULL,
   \item{listw}{an object of class \code{listw}, \code{matrix}, or \code{Matrix}}. 
   \item{listw2}{an object of class \code{listw}, \code{matrix}, or \code{Matrix}. Only 
   if both \code{lag} and \code{spatial.error} are both \code{TRUE}}
+  \item{Durbin}{default \code{FALSE}. If \code{TRUE} all the regressors are also spatially lagged. If it is a formula (Durbin = \code{~ xi + x2}), only the variables specified in the formula are lagged.  }
   \item{model}{One of \code{"within"} or \code{"random"}. The assumption
     made on the individual effects}
   \item{lag}{if \code{TRUE} a spatial lag of the dependent variable is
@@ -150,7 +151,7 @@ library(plm)
 data(Produc)
 data(usaww)
 ########SPATIAL LAG MODEL######
-#no space no endog: error usa plm
+#no space no endog: error use plm
 \dontrun{GM_lag_b2sls <- spgm(log(gsp) ~ log(pcap) + log(pc) + unemp, data=Produc,
                      lag = FALSE, spatial.error = FALSE, method = "b2sls",
                      listw = usaww)}

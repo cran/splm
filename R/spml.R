@@ -83,6 +83,9 @@ spml <- function(formula, data, index=NULL, listw, listw2=listw, na.action,
          })
 
    #}
+  #print(class(res))
+  class(res) <- c(class(res), "splm_ML")
+  #print(class(res))
   return(res)
 }
 

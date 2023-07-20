@@ -502,7 +502,7 @@ spfeml <- function(formula, data=list(), index=NULL, listw, listw2 = NULL,
     if (!is.null(na.act)) 
         spmod$na.action <- na.act
                 
-    class(spmod) <- "splm"
+    class(spmod) <- c("splm_ML","splm")
     return(spmod)
 
 }

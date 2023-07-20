@@ -9,11 +9,13 @@
 }
 \usage{
 \method{slag}{pseries}(x, listw, maxlag, ...)
+\method{slag}{default}(x, listw, maxlag, index, ...)
 }
 \arguments{
   \item{x}{an object of class  \code{pseries}}
   \item{listw}{an object of class \code{listw}}
   \item{maxlag}{the spatial lag order (including lower)} 
+  \item{index}{the default method needs a well-specified index}
 \item{...}{additional arguments to be passed}
 }
 

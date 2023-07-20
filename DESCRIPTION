@@ -1,21 +1,21 @@
 Package: splm
 Title: Econometric Models for Spatial Panel Data
-Version: 1.6-2
-Date: 2022-07-26
+Version: 1.6-3
+Date: 2023-07-20
 Authors@R: c(person(given = "Giovanni", family = "Millo", role = c("aut", "cre"), email = "giovanni.millo@deams.units.it"),
              person(given = "Gianfranco", family = "Piras", role = c("aut"), email = "gpiras@mac.com"),
              person("Roger", "Bivand", role = c("ctb"), email = "Roger.Bivand@nhh.no", comment=c(ORCID="0000-0003-2392-6140")))
 Description: ML and GM estimation and diagnostic testing of econometric models for spatial panel data.
 Depends: R (>= 2.12.0)
 Imports: plm, maxLik, MASS, bdsmatrix, ibdreg, nlme, Matrix, spam,
-        methods, spatialreg (>= 1.2-1), spdep (>= 1.2-1)
+        methods, spatialreg (>= 1.2-1), spdep (>= 1.2-1), stringr
 License: GPL-2
 LazyLoad: yes
 NeedsCompilation: no
-Packaged: 2022-07-26 14:25:47 UTC; root
+Packaged: 2023-07-20 15:23:32 UTC; gianni
 Author: Giovanni Millo [aut, cre],
   Gianfranco Piras [aut],
   Roger Bivand [ctb] (<https://orcid.org/0000-0003-2392-6140>)
 Maintainer: Giovanni Millo <giovanni.millo@deams.units.it>
 Repository: CRAN
-Date/Publication: 2022-08-06 11:30:02 UTC
+Date/Publication: 2023-07-20 16:00:02 UTC

@@ -62,21 +62,26 @@ function (X, y, ind, tind, n, k, t., nT, w, w2, coef0 = rep(0, 3),
         ## retrieve parms
         phi <- philambda[1]
         lambda <- philambda[2]
-        ## calc inverse sigma
-        sigma.1 <- invSigma(philambda, n, t., w2)
-        ## do GLS step to get e, s2e
-        glsres <- GLSstep(X, y, sigma.1)
-        e <- glsres[["ehat"]]
-        s2e <- glsres[["sigma2"]]
-        ## calc ll
-        zero <- 0
-        due <- detSigma(phi, lambda, n, t., w2)
-        tre <- -n * t./2 * log(s2e)
-        quattro <- -1/(2 * s2e) * crossprod(e, sigma.1) %*% e
-        const <- -(n * t.)/2 * log(2 * pi)
-        ll.c <- const + zero + due + tre + quattro
-        ## invert sign for minimization
-        llc <- -ll.c
+        if (!is.finite(lambda)) {
+            llc <- NA_real_
+        } else {
+            ## calc inverse sigma
+            sigma.1 <- invSigma(philambda, n, t., w2)
+            ## do GLS step to get e, s2e
+            glsres <- GLSstep(X, y, sigma.1)
+            e <- glsres[["ehat"]]
+            s2e <- glsres[["sigma2"]]
+            ## calc ll
+            zero <- 0
+            due <- detSigma(phi, lambda, n, t., w2)
+            tre <- -n * t./2 * log(s2e)
+            quattro <- -1/(2 * s2e) * crossprod(e, sigma.1) %*% e
+            const <- -(n * t.)/2 * log(2 * pi)
+            ll.c <- const + zero + due + tre + quattro
+            ## invert sign for minimization
+            llc <- -ll.c
+        }
+        llc
     }
 
     ## set bounds for optimizer

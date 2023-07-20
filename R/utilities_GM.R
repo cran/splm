@@ -24,9 +24,9 @@ function (rhopar, v, verbose = verbose)
 
 
 `arg1` <-
-function (rhopar, v, ss,SS,T, verbose = verbose) 
+function (rhopar, v, ss,SS,t, verbose = verbose) 
 {
-	Ga<-cbind( (1/(T-1))*ss^2,0)
+	Ga<-cbind( (1/(t-1))*ss^2,0)
 	Gb<-cbind( 0, SS^2)
 	Gc<-rbind(Ga,Gb)
 	Gamma<-kronecker(Gc,diag(3)) 
@@ -42,9 +42,9 @@ function (rhopar, v, ss,SS,T, verbose = verbose)
 
 
 `arg2` <-
-function (rhopar, v, ss,SS,T,TW, verbose = verbose) 
+function (rhopar, v, ss,SS,t,TW, verbose = verbose) 
 {
-	Ga<-cbind( (1/(T-1))*ss^2,0)
+	Ga<-cbind( (1/(t-1))*ss^2,0)
 	Gb<-cbind( 0, SS^2)
 	Gc<-rbind(Ga,Gb)
 	Gamma<-kronecker(Gc,TW) 
@@ -62,10 +62,10 @@ function (rhopar, v, ss,SS,T,TW, verbose = verbose)
 
 
 `fs` <-
-function(listw,u,N,T){
+function(listw,u,N,t){
 	# ind<-seq(1,T)
 	# inde<-rep(ind,each=N)
-	NT<-N*T
+	NT<-N*t
 	
 	ub <- as.matrix(listw %*%  u)
 	ubb <- as.matrix(listw %*%  ub)
@@ -73,14 +73,14 @@ function(listw,u,N,T){
 # # ub<-lag.listwpanel(listw, u, inde)	
 	# ubb<-lag.listwpanel(listw, ub, inde)
 	
-	inde1<-rep(seq(1,N),T)
+	inde1<-rep(seq(1,N),t)
 	umt<-tapply(u, inde1, mean) 
 	ubmt<-tapply(ub, inde1, mean) ####mean over time 
 	ubbmt<-tapply(ubb, inde1, mean)
 
-	umNT<-rep(umt,T)
-	ubmNT<-rep(ubmt,T)
-	ubbmNT<-rep(ubbmt,T)
+	umNT<-rep(umt,t)
+	ubmNT<-rep(ubmt,t)
+	ubbmNT<-rep(ubbmt,t)
 
 	Q0ub<-ub-ubmNT
 	Q0ubb<-ubb-ubbmNT
@@ -93,23 +93,23 @@ function(listw,u,N,T){
 	ubbQ0ub<-crossprod(ubb,Q0ub)
 	uQ0ubb<-crossprod(u,Q0ubb)
 	# trwpw<-sum(unlist(listw$weights)^2)
-	trwpw <- sum(as.vector(listw)^2)/T
+	trwpw <- sum(as.vector(listw)^2)/t
 	
-	G1c<-(1/(N*(T-1)))*rbind(2*uQ0ub, 2*ubbQ0ub,(uQ0ubb+ubQ0ub) )
-	G2c<- (-1/(N*(T-1)))* rbind(ubQ0ub,ubbQ0ubb,ubQ0ubb)
+	G1c<-(1/(N*(t-1)))*rbind(2*uQ0ub, 2*ubbQ0ub,(uQ0ubb+ubQ0ub) )
+	G2c<- (-1/(N*(t-1)))* rbind(ubQ0ub,ubbQ0ubb,ubQ0ubb)
 	G3c<- rbind(1,trwpw/N, 0)
 	G<-cbind(G1c,G2c,G3c)	
-	g<-(1/(N*(T-1)))*rbind(uQ0u,ubQ0ub,uQ0ub)
+	g<-(1/(N*(t-1)))*rbind(uQ0u,ubQ0ub,uQ0ub)
 #	print(G)
 #	print(g)
 	output<-list(bigG=G, smallg=g, Q1u=umNT,Q1ub=ubmNT,Q1ubb=ubbmNT, ub=ub,ubb=ubb,TR=trwpw)
 }
 
 `fswithin` <-
-function(listw, u, N, T){
+function(listw, u, N, t){
 	# ind<-seq(1,T)
 	# inde<-rep(ind,each=N)
-	NT<-N*T
+	NT<-N*t
 	# ub<-lag.listwpanel(listw, u, inde)
 	# ubb<-lag.listwpanel(listw, ub, inde)
 
@@ -127,14 +127,14 @@ function(listw, u, N, T){
 	ubbub<-crossprod(ubb, ub)
 
 	# trwpw<-sum(unlist(listw$weights)^2)
-	trwpw <- sum(as.vector(listw)^2)/T
+	trwpw <- sum(as.vector(listw)^2)/t
 	# print(trwpw)
-	G1c<-(1/(N*(T-1)))*rbind(2*uub, 2*ubbub,(uubb+ ubub))	
-	G2c<- (-1/(N*(T-1)))* rbind(ubub,ubbubb, ububb)
+	G1c<-(1/(N*(t-1)))*rbind(2*uub, 2*ubbub,(uubb+ ubub))	
+	G2c<- (-1/(N*(t-1)))* rbind(ubub,ubbubb, ububb)
 	G3c<- rbind(1,trwpw/N, 0)
 
 	G<-cbind(G1c,G2c,G3c)	
-	g<-(1/(N*(T-1)))*rbind(uu, ubub, uub)
+	g<-(1/(N*(t-1)))*rbind(uu, ubub, uub)
 	
 # print(G)
 # print(g)
@@ -148,8 +148,8 @@ function (W, u, zero.policy = FALSE)
       n <- length(u)
       # tt<-matrix(0,n,1)
       tr<-sum(W^2)
-      wu<- as.matrix(W %*% u)
-      wwu<- as.matrix(W %*% wu)
+      wu  <- as.matrix(W %*% u)
+      wwu <- as.matrix(W %*% wu)
       
     	uu <- crossprod(u, u)
     	uwu <- crossprod(u, wu)
@@ -209,7 +209,7 @@ function(bigG, smallg, Q1u,Q1ub,Q1ubb, u, ub,ubb,N, TR){
 
 
 `pwbetween` <-
-function(bigG, smallg, u, N, T,TR,listw){
+function(bigG, smallg, u, N, t,TR,listw){
 
 	ub<-as.matrix(listw %*% u)
 	ubb<-as.matrix(listw %*% ub)
