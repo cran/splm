@@ -24,7 +24,6 @@ importFrom(spatialreg, impacts,
          SE_classic_setup, SE_whichMin_setup, SE_interp_setup,
          as.spam.listw, get.ZeroPolicyOption)
 
-importFrom(ibdreg, pchibar)
 import(Matrix)
 importFrom(spam, as.spam, diag.spam, solve.spam, t.spam, determinant.spam)
 importFrom(maxLik, maxLik)

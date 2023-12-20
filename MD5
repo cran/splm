@@ -1,12 +1,12 @@
 19cf4d98bf27e5044b4fad8476524f02 *ChangeLog
-746222538e3e442cffc6c294de480590 *DESCRIPTION
-dfde03538a28bdbb3742f0b5bbda03ce *NAMESPACE
+399e9c58b7f0090408973854033c069f *DESCRIPTION
+be67f1840ba3c9af943a2954dea36172 *NAMESPACE
 43f6d7ba00fbf900484d2a839b28184e *R/REmod.R
 abce2458c17b274834a8ba7edf9aedf3 *R/bsjktest.R
 7c5b2ccd6defea42c36885748de8768e *R/bsjktest.formula.R
-eb75efd66575664758170a4e41ba87fc *R/bsktest.R
+9b27b12d8d4c5e5bb59d19124f3b0443 *R/bsktest.R
 738f0d6f8ca2ecf77af0e9127c5dc245 *R/fixed_effects.R
-201a87beb6d787d35cea675005a8d46f *R/impacts.splm.R
+4fecc5dc6b13f9a92cc86b306b2f400f *R/impacts.splm.R
 e3c5fd841e66870bebaa0a6acc3d821d *R/ivplm.b2sls.R
 4864b57cb0afecadcd7d23e4f806daea *R/ivplm.ec2sls.R
 8913008221b05fbee779febe8e2ad2f2 *R/ivplm.g2sls.R
@@ -77,7 +77,7 @@ d08d0c036f1ce95319749cc371942475 *man/listw2dgCMatrix.Rd
 1c7bcdd70de6ea6e3dc23d6270b1954e *man/slmtest.Rd
 6d5e72fc160128f2081e02c0b26a4dba *man/spgm.Rd
 7b5da1f8269b6b547932bcd5df62a0c8 *man/sphtest.Rd
-b15d9e1ea1878851463552e8f5946ca5 *man/spml.Rd
+c9ead53005db624d66f869dd48778d6e *man/spml.Rd
 a2350169c459f1499ece530c2ba73d05 *man/spreml.Rd
 fd3ed0e004409624969caeeb952bcce4 *man/summary.splm.Rd
 b1bc15a107ac2f2fad8987c6b21ebae3 *man/usaww.Rd

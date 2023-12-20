@@ -1,7 +1,7 @@
 
-impacts <- function(obj, ...){
-  UseMethod("impacts", obj)
-}
+#impacts <- function(obj, ...){
+#  UseMethod("impacts", obj)
+#}
 
 impacts.splm_ML <- function(obj, listw = NULL,
                          time = NULL, ...,

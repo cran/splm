@@ -3,6 +3,22 @@ function(x,...){
   UseMethod("bsktest")
 }
 
+## define necessary function pchibar() (courtesy Jason Sinnwell)
+## eliminates dependency on 'ibdreg'
+
+pchibar <- function(x, df, wt){
+  # compute P(X <= x), where P is the chi-bar distribution
+  # df = vector of df
+  # wt = vector of mixing proportions
+  if(x<=0){
+      return(0)
+  }
+  zed <- df==0
+  cdf <- ifelse(any(zed), wt[zed], 0)
+  cdf <- cdf + sum(pchisq(x, df[!zed])*wt[!zed])
+  return(cdf)
+}
+
 
 #`bsktest.splm` <-
 #function(x, listw, index=NULL, test=c("CLMlambda","CLMmu"), ...){

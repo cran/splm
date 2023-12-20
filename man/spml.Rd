@@ -1,6 +1,8 @@
 \name{spml}
 \alias{spml}
 \alias{impacts}
+\alias{impacts.splm_ML}
+\alias{impacts.splm_GM}
 \title{Spatial Panel Model by Maximum Likelihood}
 \description{Maximum likelihood (ML) estimation of spatial panel models, possibly with fixed or random effects.}
 
@@ -11,6 +13,18 @@ spml(formula, data, index=NULL, listw, listw2=listw, na.action,
                  effect=c("individual","time","twoways"),
                  lag=FALSE, spatial.error=c("b","kkp","none"),
                  ...)
+\method{impacts}{splm_ML}(obj, listw = NULL,
+                         time = NULL, ...,
+                         tr = NULL, R = 200,
+                         type = "mult",
+                         empirical = FALSE, Q = NULL)
+\method{impacts}{splm_GM}(obj, ..., tr=NULL, 
+                            R=NULL, listw=NULL,
+                            type = "mult",
+                            time = NULL,
+                            evalues=NULL, tol=1e-6, 
+                            empirical=FALSE, Q=NULL, 
+                            KPformula = FALSE, prt = TRUE)
 }
 
 \arguments{
@@ -30,6 +44,17 @@ spml(formula, data, index=NULL, listw, listw2=listw, na.action,
   \item{spatial.error}{one of \code{c("b","kkp","none")}. The type of
   spatial error in the specification, if any. See details.}
   \item{...}{additional argument to pass over to other functions}
+  \item{obj}{fitted model object}
+  \item{time}{??time??}
+  \item{tr}{A vector of traces of powers of the spatial weights matrix created using 'trW', for approximate impact measures}
+  \item{R}{If given, simulations are used to compute distributions for the impact measures, returned as 'mcmc' objects}
+  \item{type}{Either "mult" (default) for powering a sparse matrix (with moderate or larger N, the matrix becomes dense, and may lead to swapping), or "MC" for Monte Carlo simulation of the traces (the first two simulated traces are replaced by their analytical equivalents), or "moments" to use the looping space saving algorithm proposed by Smirnov and Anselin (2009) - for "moments", 'W' must be symmetric, for row-standardised weights through a similarity transformation}
+  \item{empirical}{Argument passed to 'mvrnorm' (default FALSE)}
+  \item{Q}{default NULL, else an integer number of cumulative power series impacts to calculate if 'tr' is given}
+  \item{evalues}{vector of eigenvalues of spatial weights matrix for impacts calculations}
+  \item{tol}{Argument passed to 'mvrnorm'}
+  \item{KPformula}{not yet implemented}
+  \item{prt}{not yet implemented}
 }
 \details{
   The models are estimated by two-step Maximum Likelihood.
